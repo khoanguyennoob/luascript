@@ -1,1 +1,28 @@
-bG9jYWwgZnVuY3Rpb24gTm90aWZ5KCkKICAgIC0tIDEuIEzhuqV5IGThu68gbGnhu4d1IG5nxrDhu51pIGNoxqFpCiAgICBsb2NhbCBzLCBHYW1lcGxheURhdGEgPSBwY2FsbChyZXF1aXJlLCAiR2FtZUx1YS5HYW1lQ29yZS5EYXRhLkdhbWVwbGF5RGF0YSIpCiAgICBpZiBub3QgcyBvciBub3QgR2FtZXBsYXlEYXRhIHRoZW4gcmV0dXJuIGVuZAogICAgbG9jYWwgdVBsYXllckNvbnRyb2xsZXIgPSBHYW1lcGxheURhdGEuR2V0UGxheWVyQ29udHJvbGxlcigpCiAgICBpZiBub3QgdVBsYXllckNvbnRyb2xsZXIgdGhlbiByZXR1cm4gZW5kCgogICAgLS0gMi4gTOG6pXkgdGjGsCB2aeG7h24gQmx1ZXByaW50IHbDoCBDaGF0IENvbXBvbmVudAogICAgbG9jYWwgczIsIFNURXh0cmFCbHVlcHJpbnRGdW5jdGlvbkxpYnJhcnkgPSBwY2FsbChpbXBvcnQsICJTVEV4dHJhQmx1ZXByaW50RnVuY3Rpb25MaWJyYXJ5IikKICAgIGlmIHMyIGFuZCBTVEV4dHJhQmx1ZXByaW50RnVuY3Rpb25MaWJyYXJ5IHRoZW4KICAgICAgICBsb2NhbCBjaGF0Q29tcCA9IFNURXh0cmFCbHVlcHJpbnRGdW5jdGlvbkxpYnJhcnkuR2V0Q2hhdENvbXBvbmVudEZyb21Db250cm9sbGVyKHVQbGF5ZXJDb250cm9sbGVyKQogICAgICAgIGlmIGNoYXRDb21wIGFuZCBjaGF0Q29tcC5BZGRNc2dJbkNsaWVudCB0aGVuCiAgICAgICAgICAgIGNoYXRDb21wOkFkZE1zZ0luQ2xpZW50KCI8Q2hhdFF1aWNrTXNnPkxleHVzbW9kOiBMb2FkbW9kIHRow6BuaCBjw7RuZyE8Lz4iKQogICAgICAgIGVuZAogICAgZW5kCgogICAgLS0gMy4gSEnhu4JOIFRI4buKIFBPUFVQIFJBIEdJ4buuQSBNw4BOIEjDjE5IIChEw7luZyDEkcO6bmcgaMOgbSB04burIGZpbGUgSW5HYW1lVGlwc1Rvb2xzKQogICAgbG9jYWwgczMsIEluZ2FtZVRpcHNUb29scyA9IHBjYWxsKHJlcXVpcmUsICJHYW1lTHVhLk1vZC5CYXNlTW9kLkNvbW1vbi5VSS5JbkdhbWVUaXBzVG9vbHMiKQogICAgaWYgczMgYW5kIEluZ2FtZVRpcHNUb29scyBhbmQgSW5nYW1lVGlwc1Rvb2xzLkJhdHRsZU5vcm1hbFRpcHMgdGhlbgogICAgICAgIC0tIFRydXnhu4FuOiAoTuG7mWkgZHVuZyBjaOG7rywgSUQgaGnhu4d1IOG7qW5nIGFuaW1hdGlvbiAodGjGsOG7nW5nIGzDoCAxKSwgVGjhu51pIGdpYW4gaGnhu4NuIHRo4buLIChnacOieSkpCiAgICAgICAgSW5nYW1lVGlwc1Rvb2xzLkJhdHRsZU5vcm1hbFRpcHMoIkxleHVzbW9kOiDEkMOjIHRpw6ptIFNjcmlwdCB04burIENsb3VkIHRow6BuaCBjw7RuZyEiLCAxLCAzKQogICAgZW5kCmVuZAoKLS0gQuG7jWMgcGNhbGwgxJHhu4MgY2jhu5FuZyBjcmFzaCB0dXnhu4d0IMSR4buRaQpsb2NhbCBzdGF0LCBlcnIgPSBwY2FsbChOb3RpZnkpCmlmIG5vdCBzdGF0IHRoZW4KICAgIHByaW50KCJMZXh1c21vZCBFcnJvcjogIiAuLiB0b3N0cmluZyhlcnIpKQplbmQKCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLS0gQuG6oE4gVknhur5UIFRJ4bq+UCBMT0dJQyBIQUNLL01PRCBD4bumQSBC4bqgTiBU4buqIMSQw4JZCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0K
+local function Notify()
+    local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
+    if not s or not GameplayData then return end
+    local uPlayerController = GameplayData.GetPlayerController()
+    if not uPlayerController then return end
+    local s2, STExtraBlueprintFunctionLibrary = pcall(import, "STExtraBlueprintFunctionLibrary")
+    if not s2 or not STExtraBlueprintFunctionLibrary then return end
+    local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
+    local s3, InGameUITools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameUITools")
+
+    if chatComp and chatComp.AddMsgInClient then
+        chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: Chào</>")
+        InGameUITools.ShowSystemTip("Lexusmod: Thông báo từ Cloud!")
+        if s3 and InGameUITools and InGameUITools.ShowSystemTip then
+            InGameUITools.ShowSystemTip("Lexusmod: Thông báo từ Cloud!")
+        end
+    else
+        if s3 and InGameUITools and InGameUITools.ShowSystemTip then
+            InGameUITools.ShowSystemTip("Lexusmod: Khởi chạy thành công (ChatComponent bị kẹt)")
+        end
+    end
+end
+
+local stat, err = pcall(Notify)
+if not stat then
+    local s, UI = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameUITools")
+    if s and UI then UI.ShowSystemTip("Lexusmod Lỗi: " .. tostring(err)) end
+end
