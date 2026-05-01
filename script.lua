@@ -1,96 +1,120 @@
 -- =============================================================
--- FILE TRÊN GITHUB: LEXUSMOD RAM SCANNER HOOK
--- Tuyệt đối không cần chạm vào file Local
+-- FILE TRÊN GITHUB: CHUYỂN HÓA QUICK CHAT THÀNH NÚT TẢI MOD
 -- =============================================================
 
 local function Notify(msg)
     pcall(function()
         local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
         if IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 10)
+            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 4)
         end
     end)
 end
 
--- Máy quét bộ nhớ: Tìm và Hack class QuickMenu
-local function ScanAndHookRAM()
-    local isHooked = false
+-- Máy quét RAM: Tìm và kết nối Giao diện với Dữ liệu
+local function ScanAndHookSystem()
+    local ui_hooked = _G.Lexus_UI_Hooked
+    local data_hooked = _G.Lexus_Data_Hooked
     
-    -- Duyệt toàn bộ package.loaded (Bộ nhớ đệm chứa tất cả các file Lua đã được game nạp)
-    for key, module in pairs(package.loaded) do
+    -- Quét toàn bộ các file đã được game nạp vào bộ nhớ (RAM)
+    for path, module in pairs(package.loaded) do
         
-        -- Dấu hiệu nhận diện class QuickMenu: Là Table và chứa hàm SendTeamChat
-        if type(module) == "table" and type(module.SendTeamChat) == "function" and type(module.OnSendTeamClicked) == "function" then
+        -- 1. HACK GIAO DIỆN: Ký sinh vào QuickMenu
+        if not ui_hooked and type(path) == "string" and string.find(path, "QuickMenu") and type(module) == "table" and module.RefreshQuickChatScroll then
             
-            if not module.Lexus_Hooked then
-                -- Lưu lại hàm gốc trên RAM
-                local Org_SendTeamChat = module.SendTeamChat
+            -- Lưu lại hàm làm mới danh sách gốc
+            local org_Refresh = module.RefreshQuickChatScroll
+            
+            module.RefreshQuickChatScroll = function(self)
+                -- Để game tự tạo danh sách chat nhanh bình thường
+                org_Refresh(self)
                 
-                -- Đè hàm mới trực tiếp vào RAM
-                module.SendTeamChat = function(self, Text)
-                    local content = string.lower(Text or "")
-                    
-                    -- NHẬN DIỆN LỆNH LOADMOD TRONG TRẬN
-                    if string.find(content, "loadmod") then
-                        Notify("Bắt được lệnh! Đang kéo Script...")
-                        
-                        local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
-                        if AWSHelper then
-                            local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
-                            AWSHelper:DownloadBinary(URL, function(res)
-                                if res:IsOK() then
-                                    pcall(function()
-                                        require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
-                                    end)
-                                    
-                                    local time_ticker = require("common.time_ticker")
-                                    time_ticker.AddTimerOnce(2, function()
-                                        Notify("Kích hoạt Mod hoàn tất!")
-                                    end)
-                                end
-                            end)
+                -- Sau khi tạo xong, chúng ta TRÁO ĐỔI Ô ĐẦU TIÊN (Index 0)
+                pcall(function()
+                    if self.UIRoot and self.UIRoot.ScrollBox_Quick then
+                        local QuickTextBP = self.UIRoot.ScrollBox_Quick:GetChildAt(0)
+                        if QuickTextBP and slua.isValid(QuickTextBP) then
+                            -- Đổi chữ hiển thị cực ngầu
+                            QuickTextBP.RichTextBlock:SetText("<QuickPhrases>🔥 BẤM ĐỂ TẢI SCRIPT LEXUSMOD 🔥</>")
+                            -- Gán mã độc ID: 999999
+                            QuickTextBP.MsgID = 999999
+                            QuickTextBP.RealTextID = 999999
                         end
-                        
-                        -- Đóng giao diện Chat và xóa chữ cho gọn
-                        pcall(function()
-                            if self.UIRoot and self.UIRoot.inputText then
-                                self.UIRoot.inputText:SetText("")
-                            end
-                            local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
-                            local MainControlBaseUI = InGameUITools.GetMainControlBaseUI()
-                            if MainControlBaseUI then MainControlBaseUI:HideQuickChatMenu() end
-                        end)
-                        
-                        return -- HỦY GỬI TIN NHẮN
                     end
-                    
-                    -- Nếu không phải lệnh loadmod, trả về chat bình thường
-                    return Org_SendTeamChat(self, Text)
-                end
-                
-                module.Lexus_Hooked = true
-                Notify("Đã cấy Hook thành công vào QuickMenu!")
+                end)
             end
             
-            isHooked = true
-            break -- Đã tìm thấy và Hook xong, thoát vòng lặp
+            _G.Lexus_UI_Hooked = true
+            ui_hooked = true
+            Notify("Đã tạo Nút Kích Hoạt trong Menu Chat Nhanh!")
+        end
+        
+        -- 2. HACK DỮ LIỆU: Rải thảm ChatComponent để đợi ID 999999
+        if not data_hooked and type(path) == "string" and string.find(path, "ChatComponent") and type(module) == "table" then
+            
+            for funcName, func in pairs(module) do
+                if type(func) == "function" and not _G["OrgCC_" .. funcName] then
+                    _G["OrgCC_" .. funcName] = func
+                    
+                    module[funcName] = function(self, ...)
+                        local args = {...}
+                        
+                        -- Quét tất cả tham số gửi xuống xem có phải mã 999999 không
+                        for _, v in ipairs(args) do
+                            if tostring(v) == "999999" then
+                                Notify("Đang kéo Script chính từ Github...")
+                                
+                                local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
+                                if AWSHelper then
+                                    local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
+                                    AWSHelper:DownloadBinary(URL, function(res)
+                                        if res:IsOK() then
+                                            pcall(function()
+                                                require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
+                                            end)
+                                            
+                                            local time_ticker = require("common.time_ticker")
+                                            time_ticker.AddTimerOnce(2, function()
+                                                Notify("Kích hoạt Script hoàn tất!")
+                                            end)
+                                        end
+                                    end)
+                                end
+                                
+                                -- Ẩn giao diện Chat đi sau khi bấm
+                                pcall(function()
+                                    local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
+                                    local MainUI = InGameUITools.GetMainControlBaseUI()
+                                    if MainUI then MainUI:HideQuickChatMenu() end
+                                end)
+                                
+                                return -- Hủy tin nhắn 999999, bảo vệ game không bị lỗi
+                            end
+                        end
+                        
+                        -- Trả về chạy bình thường nếu là chat khác
+                        return _G["OrgCC_" .. funcName](self, ...)
+                    end
+                end
+            end
+            
+            _G.Lexus_Data_Hooked = true
+            data_hooked = true
+            Notify("Đã giăng lưới đón mã 999999!")
         end
     end
     
-    return isHooked
+    return ui_hooked and data_hooked
 end
 
--- Vòng lặp ngầm: Chờ đến khi game thực sự load QuickMenu vào RAM
-local function StartDaemon()
-    Notify("Scanning")
-    -- Nếu chưa tìm thấy QuickMenu (do đang ở Sảnh, game chưa load giao diện Trong trận)
-    if not pcall(ScanAndHookRAM) or not ScanAndHookRAM() then
-        -- Hẹn 2 giây sau quét RAM lại một lần
+-- Vòng lặp ngầm chạy liên tục tới khi bắt được cả 2 file
+local function DaemonWatcher()
+    if not pcall(ScanAndHookSystem) or not ScanAndHookSystem() then
         local time_ticker = require("common.time_ticker")
-        time_ticker.AddTimerOnce(2, StartDaemon)
+        time_ticker.AddTimerOnce(2, DaemonWatcher)
     end
 end
 
--- Kích hoạt hệ thống ngay khi file Github được load
-pcall(StartDaemon)
-Notify("Radar đang dò tìm giao diện In-game...")
+-- Khởi động cỗ máy
+pcall(DaemonWatcher)
+Notify("Khởi động Radar quét hệ thống In-game...")
