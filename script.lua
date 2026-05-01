@@ -38,16 +38,16 @@ _G.ApplyWeaponMod = function()
             -- Áp dụng Mod khi mọi thứ đã load đầy đủ và an toàn
             if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
                 -- Kiểm tra giá trị trước khi gán để tránh spam lệnh gán (tối ưu CPU)
-                if ShootEntity.AccessoriesVRecoilFactor ~= 0.15 then
+                if ShootEntity.AccessoriesVRecoilFactor ~= 0.11 then
                     ShootEntity.bRecordHitDetail = false;
                     ShootEntity.RecoilKickADS = 0.11;
                     ShootEntity.bCachedDefaultConfig = false;
-                    ShootEntity.bDrawCrosshairWhenScope = false;
-                    ShootEntity.ReloadWithNoCost = true;
-                    ShootEntity.BulletNumSingleShot = 8;
-                    ShootEntity.AccessoriesVRecoilFactor = 0.15
-                    ShootEntity.AccessoriesHRecoilFactor = 0.15
-                    ShootEntity.GameDeviationFactor = -2.0
+                  --  ShootEntity.bDrawCrosshairWhenScope = false;
+                   -- ShootEntity.ReloadWithNoCost = true;
+                    --ShootEntity.BulletNumSingleShot = 8;
+                    ShootEntity.AccessoriesVRecoilFactor = 0.11
+                    ShootEntity.AccessoriesHRecoilFactor = 0.07
+                    ShootEntity.GameDeviationFactor = 0.0
                     ShootEffect.CameraShakeInnerRadius = 0.0
                     
                     if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
