@@ -47,5 +47,9 @@ function BRPlayerCharacterBase:ApplyWeaponConfig()
             end
         end
     end
+
+    pcall(function() 
+            BRPlayerCharacterBase:ApplyWeaponConfig() 
+        end)
     return false
 end
