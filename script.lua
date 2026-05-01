@@ -1,6 +1,3 @@
--- =============================================================
--- FILE TRÊN GITHUB: ZERO-HOOK SCANNER (KHÔNG TRÁO HÀM GỐC)
--- =============================================================
 local function Notify(msg)
     pcall(function()
         local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
@@ -10,58 +7,119 @@ local function Notify(msg)
     end)
 end
 
--- Bộ quét dữ liệu thuần túy (Chỉ đọc, không ghi đè)
-local function ZeroHookScanner()
-    pcall(function()
-        local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
-        if not s or not GameplayData then return end
+-- Hàm cấu hình súng (giữ nguyên logic đã tối ưu)
+function Lexus:ApplyWeaponConfig()
+    local LocalPlayer = self:GetPlayerCharacterSafety()
+    if not slua.isValid(LocalPlayer) then return false end
+    
+    local WeaponManager = LocalPlayer.WeaponManagerComponent
+    if not slua.isValid(WeaponManager) then return false end
+    
+    local Slot = WeaponManager:GetCurrentUsingPropSlot()
+    local SlotValue = tonumber(Slot:GetValue()) or 0
+    
+    if SlotValue >= 1 and SlotValue <= 3 then
+        local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
         
-        local PC = GameplayData.GetPlayerController()
-        if not slua.isValid(PC) then return end
-        
-        local ChatComp = PC:GetChatComponent()
-        if not slua.isValid(ChatComp) then return end
-        
-        -- LẤY DỮ LIỆU TIN NHẮN MỚI NHẤT TRONG GAME
-        -- (Dựa theo đúng cấu trúc ở dòng 123 file QuickMenu của bạn)
-        local currentMsg = string.lower(tostring(ChatComp.CurrMsg or ""))
-        
-        -- NẾU THẤY CHỮ LOADMOD VÀ CHƯA TỪNG CHẠY TRƯỚC ĐÓ
-        if string.find(currentMsg, "loadmod") and _G.Lexus_LastMsg ~= currentMsg then
+        if slua.isValid(CurrentWeapon) then
+            local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
+            local ShootEffect = CurrentWeapon.ShootWeaponEffectComp
             
-            -- Lưu lại để ngăn vòng lặp chạy script tải về liên tục
-            _G.Lexus_LastMsg = currentMsg 
-            
-            Notify("Đã đọc thấy lệnh! Đang kéo Script...")
-            
-            local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
-            if AWSHelper then
-                local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
-                AWSHelper:DownloadBinary(URL, function(res)
-                    if res:IsOK() then
-                        -- Thực thi Code Mod
-                        pcall(function() 
-                            require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent()) 
-                        end)
-                        
-                        -- Hẹn 2 giây báo thành công
-                        require("common.time_ticker").AddTimerOnce(2, function() 
-                            Notify("Kích hoạt hoàn tất!") 
-                        end)
-                    end
-                end)
+            if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
+                -- Kiểm tra xem súng này đã được mod chưa để tránh gán lại liên tục
+                if ShootEntity.VehicleDamageScale ~= 573.0 then
+                    ShootEntity.VehicleDamageScale = 573.0
+                    ShootEntity.BurstShootInterval = 0.0
+                    ShootEntity.ShootIntervalShowNumber = 990
+                    ShootEntity.ShootInterval = 0.05
+                    ShootEntity.ExtraShootInterval = 0.05
+                    ShootEntity.bRecordHitDetail = false
+                    
+                    ShootEntity.AccessoriesVRecoilFactor = 0.13
+                    ShootEntity.AccessoriesHRecoilFactor = 0.13
+                    ShootEntity.RecoilKickADS = 0.11
+                    
+                    ShootEntity.GameDeviationFactor = 0.0
+                    ShootEntity.GameDeviationAccuracy = 0.0
+                    ShootEntity.MaxDamageRate = 0
+                    
+                    ShootEffect.CameraShakeInnerRadius = 0.0
+                    ShootEffect.CameraShakeOuterRadius = 0.0
+                    ShootEffect.CameraShakFalloff = 0.000001
+                    
+                    Notify("Cấu hình súng đã kích hoạt!")
+                end
+                return true
             end
         end
-    end)
-    
-    -- Lặp lại việc "nhìn lén" dữ liệu mỗi 0.5 giây
-    local time_ticker = require("common.time_ticker")
-    time_ticker.AddTimerOnce(0.5, ZeroHookScanner)
+    end
+    return false
 end
 
--- Kích hoạt bộ quét (Đảm bảo chỉ chạy 1 luồng duy nhất)
+-- ==========================================
+-- HỆ THỐNG AUTO-SCAN (Quét liên tục an toàn)
+-- ==========================================
+
 if not _G.Lexus_Scanner_Running then
     _G.Lexus_Scanner_Running = true
-    pcall(ZeroHookScanner)
-    Notify("Hệ thống Không-Hook đã chạy! Hãy gõ 'loadmod'")
+    Notify("Hệ thống Auto-Scan đang chạy!")
+    
+    -- Lưu lại hàm ReceiveTick gốc của game để không làm hỏng logic di chuyển/bắn của nhân vật
+    local Old_ReceiveTick = Lexus.ReceiveTick
+    
+    -- Ghi đè hàm Tick
+    function Lexus:ReceiveTick(DeltaSeconds)
+        -- 1. Luôn gọi lại hàm gốc để game hoạt động bình thường
+        if Old_ReceiveTick then
+            Old_ReceiveTick(self, DeltaSeconds)
+        end
+        
+        -- 2. Tạo một bộ đếm thời gian (ScanTimer)
+        self.LexusScanTimer = (self.LexusScanTimer or 0) + DeltaSeconds
+        
+        -- 3. Chỉ thực thi việc check súng mỗi 1.0 giây (tránh lag FPS)
+        if self.LexusScanTimer >= 1.0 then
+            self.LexusScanTimer = 0 -- Reset bộ đếm
+            
+            -- Chạy hàm cấu hình súng
+            pcall(function() 
+                self:ApplyWeaponConfig() 
+            end)
+        end
+    end
 end
+
+
+
+local class = require("class")
+local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
+local CLexus = class(CCharacterBase, nil, Lexus)
+return require("combine_class").DeclareFeature(CLexus, {
+  {
+    SkyTransition = "GameLua.Mod.BaseMod.Gameplay.Feature.SkyControl.PlayerCharacterSkyTransitionFeature"
+  },
+  {
+    CarryDeadBoxFeature = "GameLua.Mod.Library.GamePlay.Feature.CarryDeadBoxFeature"
+  },
+  {
+    SpecialSuitFeature = "GameLua.Mod.Library.GamePlay.Feature.SpecialSuitFeature"
+  },
+  {
+    TeleportPawnFeature = "GameLua.Mod.Library.GamePlay.Feature.TeleportPawnFeature"
+  },
+  {
+    LifterControl = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.CharacterLifterControlFeature"
+  },
+  {
+    FinalKillEffect = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.PlayerCharacterFinalKillEffectFeature"
+  },
+  {
+    CampFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.Camp.PlayerCharacterCampFeature"
+  },
+  {
+    BuildSkateFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.PlayerCharacterBuildVehicleFeature"
+  },
+  {
+    CommonBornlandTransformFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.HeroPropFeature.CommonBornlandTransformFeature"
+  }
+}, "Lexus")
