@@ -30,21 +30,24 @@ _G.ApplyWeaponMod = function()
                 ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
             end
             
-            local ShootEffect = CurrentWeapon.ShootWeaponEffectComp 
+            local ShootEffect = CurrentWeapon.ShootWeaponEffect
             if not slua.isValid(ShootEffect) and slua.isValid(CurrentWeapon.ShootWeaponComponent) then
-                ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
+                ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComponent
             end
             
             -- Áp dụng Mod khi mọi thứ đã load đầy đủ và an toàn
             if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
                 -- Kiểm tra giá trị trước khi gán để tránh spam lệnh gán (tối ưu CPU)
-                if ShootEntity.VehicleDamageScale ~= 573.0 then
-                    ShootEntity.VehicleDamageScale = 573.0
-                    ShootEntity.BurstShootInterval = 0.0
-                    ShootEntity.ShootInterval = 0.05
-                    ShootEntity.AccessoriesVRecoilFactor = 0.13
-                    ShootEntity.AccessoriesHRecoilFactor = 0.13
-                    ShootEntity.GameDeviationFactor = 0.0
+                if ShootEntity.AccessoriesVRecoilFactor ~= 0.15 then
+                    ShootEntity.bRecordHitDetail = false;
+                    ShootEntity.RecoilKickADS = 0.11;
+                    ShootEntity.bCachedDefaultConfig = false;
+                    ShootEntity.bDrawCrosshairWhenScope = false;
+                    ShootEntity.ReloadWithNoCost = true;
+                    ShootEntity.BulletNumSingleShot = 8;
+                    ShootEntity.AccessoriesVRecoilFactor = 0.15
+                    ShootEntity.AccessoriesHRecoilFactor = 0.15
+                    ShootEntity.GameDeviationFactor = -2.0
                     ShootEffect.CameraShakeInnerRadius = 0.0
                     
                     if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
