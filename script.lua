@@ -22,23 +22,21 @@ _G.ApplyWeaponMod = function()
                     ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
                 end
                 
-                local ShootEffect = CurrentWeapon.ShootWeaponEffect
+                local ShootEffect = CurrentWeapon.ShootWeaponEffectComp 
                 if not slua.isValid(ShootEffect) and slua.isValid(CurrentWeapon.ShootWeaponComponent) then
-                    ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComponent
+                    ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
                 end
                 
-                if ShootEntity.AccessoriesVRecoilFactor ~= 0.11 then
-                    ShootEntity.bRecordHitDetail = false;
-                    ShootEntity.RecoilKickADS = 0.11;
-                    ShootEntity.bCachedDefaultConfig = false;
-                  --  ShootEntity.bDrawCrosshairWhenScope = false;
-                   -- ShootEntity.ReloadWithNoCost = true;
-                    --ShootEntity.BulletNumSingleShot = 8;
-                    ShootEntity.AccessoriesVRecoilFactor = 0.11
-                    ShootEntity.AccessoriesHRecoilFactor = 0.07
-                    ShootEntity.GameDeviationFactor = 0.0
-                    ShootEffect.CameraShakeInnerRadius = 0.0
-                    if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
+                if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
+                    if ShootEntity.VehicleDamageScale ~= 573.0 then
+                        ShootEntity.VehicleDamageScale = 573.0
+                        ShootEntity.BurstShootInterval = 0.0
+                        ShootEntity.ShootInterval = 0.05
+                        ShootEntity.AccessoriesVRecoilFactor = 0.13
+                        ShootEntity.AccessoriesHRecoilFactor = 0.13
+                        ShootEntity.GameDeviationFactor = 0.0
+                        ShootEffect.CameraShakeInnerRadius = 0.0
+                        if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
                     end
                 end
             end
@@ -68,19 +66,17 @@ _G.ApplyWeaponMod = function()
                     -- SỬ DỤNG HÀM CHUẨN CỦA GAME ĐỂ BƠM XĂNG
                     if type(VehicleCommon.SetFuelMax) == "function" then
                         VehicleCommon:SetFuelMax(MaxFuel, true)
-                        --VehicleCommon:OnRep_Fuel(MaxFuel)
                     end
                     if type(VehicleCommon.SetFuel) == "function" then
                         VehicleCommon:SetFuel(MaxFuel)
-                      --  VehicleCommon:OnRep_Fuel(MaxFuel)
                     else
                         VehicleCommon.Fuel = MaxFuel
                     end
                     
-                    if _G.LexusNotify then _G.LexusNotify("Đã tự động nạp đầy nhiên liệu xe bằng hàm gốc!") end
+                    if _G.LexusNotify then _G.LexusNotify("Đã tự động nạp đầy nhiên liệu xe!") end
                 end
                 
-                VehicleCommon.FuelConsumeFactor = 0.001 -- Đưa luôn về 0 cho xe chạy vĩnh viễn
+                VehicleCommon.FuelConsumeFactor = 0.0 -- Đưa luôn về 0 cho xe chạy vĩnh viễn
             end
             
             -- Sửa xe & Tắt Anti-Cheat
