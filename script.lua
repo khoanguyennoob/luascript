@@ -1,5 +1,9 @@
-local Lexus = {
-}
+-- 1. GỌI THƯ VIỆN LÊN ĐẦU FILE
+local class = require("class")
+local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
+
+-- 2. TẠO BẢNG CHỨA HÀM MOD
+local Lexus = {}
 
 local function Notify(msg)
     pcall(function()
@@ -10,7 +14,9 @@ local function Notify(msg)
     end)
 end
 
--- Hàm cấu hình súng (giữ nguyên logic đã tối ưu)
+-- ==========================================
+-- HÀM CẤU HÌNH SÚNG
+-- ==========================================
 function Lexus:ApplyWeaponConfig()
     local LocalPlayer = self:GetPlayerCharacterSafety()
     if not slua.isValid(LocalPlayer) then return false end
@@ -62,41 +68,40 @@ end
 -- ==========================================
 -- HỆ THỐNG AUTO-SCAN (Quét liên tục an toàn)
 -- ==========================================
-
 if not _G.Lexus_Scanner_Running then
     _G.Lexus_Scanner_Running = true
     Notify("Hệ thống Auto-Scan đang chạy!")
+end
+
+-- LƯU Ý: Phải lưu hàm Tick của class CCharacterBase (Class cha)
+local Old_ReceiveTick = CCharacterBase.ReceiveTick
+
+-- Ghi đè hàm Tick
+function Lexus:ReceiveTick(DeltaSeconds)
+    -- 1. Luôn gọi lại hàm gốc để game hoạt động bình thường
+    if Old_ReceiveTick then
+        Old_ReceiveTick(self, DeltaSeconds)
+    end
     
-    -- Lưu lại hàm ReceiveTick gốc của game để không làm hỏng logic di chuyển/bắn của nhân vật
-    local Old_ReceiveTick = Lexus.ReceiveTick
+    -- 2. Tạo một bộ đếm thời gian (ScanTimer)
+    self.LexusScanTimer = (self.LexusScanTimer or 0) + DeltaSeconds
     
-    -- Ghi đè hàm Tick
-    function Lexus:ReceiveTick(DeltaSeconds)
-        -- 1. Luôn gọi lại hàm gốc để game hoạt động bình thường
-        if Old_ReceiveTick then
-            Old_ReceiveTick(self, DeltaSeconds)
-        end
+    -- 3. Chỉ thực thi việc check súng mỗi 1.0 giây (tránh lag FPS)
+    if self.LexusScanTimer >= 1.0 then
+        self.LexusScanTimer = 0 -- Reset bộ đếm
         
-        -- 2. Tạo một bộ đếm thời gian (ScanTimer)
-        self.LexusScanTimer = (self.LexusScanTimer or 0) + DeltaSeconds
-        
-        -- 3. Chỉ thực thi việc check súng mỗi 1.0 giây (tránh lag FPS)
-        if self.LexusScanTimer >= 1.0 then
-            self.LexusScanTimer = 0 -- Reset bộ đếm
-            
-            -- Chạy hàm cấu hình súng
-            pcall(function() 
-                self:ApplyWeaponConfig() 
-            end)
-        end
+        -- Chạy hàm cấu hình súng
+        pcall(function() 
+            self:ApplyWeaponConfig() 
+        end)
     end
 end
 
-
-
-local class = require("class")
-local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
+-- ==========================================
+-- TẠO CLASS VÀ TRẢ VỀ CHO ENGINE GAME
+-- ==========================================
 local CLexus = class(CCharacterBase, nil, Lexus)
+
 return require("combine_class").DeclareFeature(CLexus, {
   {
     SkyTransition = "GameLua.Mod.BaseMod.Gameplay.Feature.SkyControl.PlayerCharacterSkyTransitionFeature"
