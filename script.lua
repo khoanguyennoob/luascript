@@ -7,7 +7,7 @@ local function Notify(msg)
     pcall(function()
         local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
         if IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
+            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 10)
         end
     end)
 end
@@ -82,6 +82,7 @@ end
 
 -- Vòng lặp ngầm: Chờ đến khi game thực sự load QuickMenu vào RAM
 local function StartDaemon()
+    Notify("Scanning")
     -- Nếu chưa tìm thấy QuickMenu (do đang ở Sảnh, game chưa load giao diện Trong trận)
     if not pcall(ScanAndHookRAM) or not ScanAndHookRAM() then
         -- Hẹn 2 giây sau quét RAM lại một lần
