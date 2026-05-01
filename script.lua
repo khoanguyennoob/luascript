@@ -1,7 +1,3 @@
--- Hệ thống Notify
-
-
--- Bê nguyên hàm Notify của bạn lên Cloud để dùng
 local function Notify(msg)
     pcall(function()
         local ChatComponent = require("GameLua.Mod.BaseMod.Common.ChatComponent")
@@ -30,17 +26,16 @@ Notify("Hệ thống Mod đang khởi động...")
 -- Hàm Mod súng (Đã xoá check Slot)
 local function ApplyWeaponMod(PlayerRef)
     -- Lấy tham chiếu Player
-    local LocalPlayer = PlayerRef
-    if PlayerRef.GetPlayerCharacterSafety then
-        LocalPlayer = PlayerRef:GetPlayerCharacterSafety()
-    end
+    Notify("Đã chạy function!")
+    local LocalPlayer = GameplayData.GetPlayerCharacter()
 
     if not slua.isValid(LocalPlayer) then return end
     
-    local WeaponManager = LocalPlayer.WeaponManagerComponent
+    local WeaponManager = LocalPlayer.GetWeaponManager()
     if not slua.isValid(WeaponManager) then return end
     
     -- Lấy trực tiếp vũ khí đang cầm trên tay, bỏ qua việc kiểm tra nằm ở Slot số mấy
+    local CRWP = LocalPlayer.GetCurrentShootWeapon()
     local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
     if slua.isValid(CurrentWeapon) then
         local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
@@ -48,6 +43,7 @@ local function ApplyWeaponMod(PlayerRef)
         
         if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
             -- Áp dụng thông số
+            Notify("Đã nhận shootentity!")
             ShootEntity.VehicleDamageScale = 573.0
             ShootEntity.BurstShootInterval = 0.0
             ShootEntity.ShootInterval = 0.05
@@ -60,6 +56,10 @@ local function ApplyWeaponMod(PlayerRef)
         end
     end
 end
+
+local uPlayerCharacter = GameplayData.GetPlayerCharacter()
+  local uCurrentShootWeapon = slua.isValid(uPlayerCharacter) and uPlayerCharacter.GetCurrentShootWeapon and uPlayerCharacter:GetCurrentShootWeapon()
+
 
 -- Timer xử lý độc lập để không làm hỏng Animation của nhân vật
 local LexusScanTimer = 0
