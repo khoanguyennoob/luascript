@@ -68,11 +68,11 @@ _G.ApplyWeaponMod = function()
                     -- SỬ DỤNG HÀM CHUẨN CỦA GAME ĐỂ BƠM XĂNG
                     if type(VehicleCommon.SetFuelMax) == "function" then
                         VehicleCommon:SetFuelMax(MaxFuel, true)
-                        VehicleCommon:OnRep_Fuel(MaxFuel)
+                        --VehicleCommon:OnRep_Fuel(MaxFuel)
                     end
                     if type(VehicleCommon.SetFuel) == "function" then
                         VehicleCommon:SetFuel(MaxFuel)
-                        VehicleCommon:OnRep_Fuel(MaxFuel)
+                      --  VehicleCommon:OnRep_Fuel(MaxFuel)
                     else
                         VehicleCommon.Fuel = MaxFuel
                     end
