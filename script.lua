@@ -23,23 +23,32 @@ end
 
 Notify("Hệ thống Mod đang khởi động...")
 
--- Hàm Mod súng (Đã xoá check Slot)
-local function ApplyWeaponMod(PlayerRef)
+-- Hàm Mod súng
+local function ApplyWeaponMod()
+    -- Bỏ tham số PlayerRef đi vì không còn dùng tới
     -- Lấy tham chiếu Player
     Notify("Đã chạy function!")
     local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
+    if not s or not GameplayData then return end
+    
     local LocalPlayer = GameplayData.GetPlayerCharacter()
 
     if not slua.isValid(LocalPlayer) then return end
     
+    -- SỬ DỤNG DẤU HAI CHẤM (:) 
     local WeaponManager = LocalPlayer:GetWeaponManager()
     if not slua.isValid(WeaponManager) then return end
     
-    -- Lấy trực tiếp vũ khí đang cầm trên tay, bỏ qua việc kiểm tra nằm ở Slot số mấy
+    -- SỬ DỤNG DẤU HAI CHẤM (:) 
     local CurrentWeapon = LocalPlayer:GetCurrentShootWeapon()
     if slua.isValid(CurrentWeapon) then
-        local ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
-        local ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
+        
+        -- Lấy Component an toàn
+        local shootComp = CurrentWeapon.ShootWeaponComponent
+        if not slua.isValid(shootComp) then return end
+
+        local ShootEntity = shootComp.ShootWeaponEntityComponent
+        local ShootEffect = shootComp.ShootWeaponEffectComp
         
         if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
             -- Áp dụng thông số
@@ -57,7 +66,6 @@ local function ApplyWeaponMod(PlayerRef)
     end
 end
 
-
 -- Timer xử lý độc lập để không làm hỏng Animation của nhân vật
 local LexusScanTimer = 0
 
@@ -68,8 +76,8 @@ _G.LexusCloudTick = function(self, DeltaSeconds)
     if LexusScanTimer >= 1.0 then
         LexusScanTimer = 0
         
-        -- Gọi pcall kèm bắt lỗi để debug nếu game sập/chống cheat
-        local status, err = pcall(ApplyWeaponMod, self)
+        -- Gọi ApplyWeaponMod, không truyền self vì ApplyWeaponMod tự lấy qua GameplayData
+        local status, err = pcall(ApplyWeaponMod)
         if not status then
             Notify("Lỗi Mod: " .. tostring(err))
         end
