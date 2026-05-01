@@ -10,10 +10,9 @@ end
 
 Notify("Hệ thống Mod đang khởi động...")
 
--- Hàm Mod súng
+-- Hàm Mod súng (Đã xoá check Slot)
 local function ApplyWeaponMod(PlayerRef)
-    -- Nếu PlayerRef đã là Character, việc gọi GetPlayerCharacterSafety có thể báo lỗi.
-    -- Tùy thuộc vào cấu trúc game của bạn, hãy cẩn thận ở dòng này.
+    -- Lấy tham chiếu Player
     local LocalPlayer = PlayerRef
     if PlayerRef.GetPlayerCharacterSafety then
         LocalPlayer = PlayerRef:GetPlayerCharacterSafety()
@@ -24,47 +23,40 @@ local function ApplyWeaponMod(PlayerRef)
     local WeaponManager = LocalPlayer.WeaponManagerComponent
     if not slua.isValid(WeaponManager) then return end
     
-    local Slot = WeaponManager:GetCurrentUsingPropSlot()
-    local SlotValue = tonumber(Slot:GetValue()) or 0
-    
-    -- Kiểm tra lại xem game dùng index từ 0 hay 1 (thường slot súng là 0, 1, 2)
-    if SlotValue >= 1 and SlotValue <= 3 then
-        local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
-        if slua.isValid(CurrentWeapon) then
-            local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
-            local ShootEffect = CurrentWeapon.ShootWeaponEffectComp
+    -- Lấy trực tiếp vũ khí đang cầm trên tay, bỏ qua việc kiểm tra nằm ở Slot số mấy
+    local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
+    if slua.isValid(CurrentWeapon) then
+        local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
+        local ShootEffect = CurrentWeapon.ShootWeaponEffectComp
+        
+        if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
+            -- Áp dụng thông số
+            ShootEntity.VehicleDamageScale = 573.0
+            ShootEntity.BurstShootInterval = 0.0
+            ShootEntity.ShootInterval = 0.05
+            ShootEntity.AccessoriesVRecoilFactor = 0.13
+            ShootEntity.AccessoriesHRecoilFactor = 0.13
+            ShootEntity.GameDeviationFactor = 0.0
+            ShootEffect.CameraShakeInnerRadius = 0.0
             
-            if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
-                -- In ra log để xem giá trị gốc là bao nhiêu
-                -- Nếu nó crash ở những dòng gán này, tức là bạn cần hàm Setter
-                ShootEntity.VehicleDamageScale = 573.0
-                ShootEntity.BurstShootInterval = 0.0
-                ShootEntity.ShootInterval = 0.05
-                ShootEntity.AccessoriesVRecoilFactor = 0.13
-                ShootEntity.AccessoriesHRecoilFactor = 0.13
-                ShootEntity.GameDeviationFactor = 0.0
-                ShootEffect.CameraShakeInnerRadius = 0.0
-                
-                Notify("Cấu hình súng đã kích hoạt!")
-            end
+            Notify("Cấu hình súng đã kích hoạt!")
         end
     end
 end
 
--- Tách biến Timer ra khỏi `self` để tránh làm crash Lua Metatable của Character
+-- Timer xử lý độc lập để không làm hỏng Animation của nhân vật
 local LexusScanTimer = 0
 
 _G.LexusCloudTick = function(self, DeltaSeconds)
-    if not DeltaSeconds then return end -- Chống lỗi nil
+    if not DeltaSeconds then return end 
     
     LexusScanTimer = LexusScanTimer + DeltaSeconds
     if LexusScanTimer >= 1.0 then
         LexusScanTimer = 0
         
-        -- Dùng pcall nhưng bắt lỗi (err) để biết chính xác nó chết ở đâu
+        -- Gọi pcall kèm bắt lỗi để debug nếu game sập/chống cheat
         local status, err = pcall(ApplyWeaponMod, self)
         if not status then
-            -- Bắn thông báo lỗi lên màn hình để dễ Debug
             Notify("Lỗi Mod: " .. tostring(err))
         end
     end
