@@ -1,9 +1,11 @@
 -- Hệ thống Notify
 local function Notify(msg)
     pcall(function()
-        local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
+        local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
+        local s3, InGameUITools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameUITools")
         if IngameTipsTools and IngameTipsTools.BattleNormalTips then
             IngameTipsTools.BattleNormalTips("Lexusmod: " .. tostring(msg), 2, 4)
+            chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. tostring(msg) .. " </>")
         end
     end)
 end
