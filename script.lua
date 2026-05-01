@@ -34,7 +34,7 @@ if not _G.Lexus_ChatHooked then
         local content = string.lower(DirtyString or "")
         
         -- Nhận diện ám hiệu từ người dùng
-        if content == "loadmod" then
+        if string.find(content, "loadmod") then
             local h = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
             if h then
                 Notify("Đang kéo Script chính về máy...")
