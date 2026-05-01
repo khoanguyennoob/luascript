@@ -1,7 +1,7 @@
 -- 1. GỌI THƯ VIỆN LÊN ĐẦU FILE
 local class = require("class")
 local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
-
+Notify("Đã tải file từ clodu!")
 -- 2. TẠO BẢNG CHỨA HÀM MOD
 local Lexus = {}
 
