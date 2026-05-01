@@ -1,40 +1,45 @@
--- Dòng này nằm vứt thẳng ra ngoài, không nằm trong function nào cả.
--- Khi GM Tool load xong, dòng này PHẢI được in ra màn hình!
-if _G.LexusNotify then 
-    _G.LexusNotify("Code từ GitHub ĐÃ BIÊN DỊCH VÀ ĐỌC THÀNH CÔNG!") 
-end
-
--- Định nghĩa hàm Mod (phải là _G)
 _G.ApplyWeaponMod = function()
-    if _G.LexusNotify then _G.LexusNotify("Đã chạy function!") end
-    
     local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
     if not s or not GameplayData then return end
     
-    local LocalPlayer = GameplayData.GetPlayerCharacter()
-    if not slua.isValid(LocalPlayer) then return end
+    -- 1. Học từ file gốc: Lấy PlayerController trước
+    local uPlayerController = GameplayData.GetPlayerController()
+    if not slua.isValid(uPlayerController) then return end
+    if _G.LexusNotify then _G.LexusNotify("đaz lâhs controll") end
     
-    local WeaponManager = LocalPlayer:GetWeaponManager()
-    if not slua.isValid(WeaponManager) then return end
+    -- 2. Học từ file gốc: Lấy Pawn (thực thể đang điều khiển)
+    local uPlayerCharacter = uPlayerController:GetCurPawn()
     
-    local CurrentWeapon = LocalPlayer:GetCurrentShootWeapon()
-    if slua.isValid(CurrentWeapon) then
+    -- 3. Học từ file gốc: Kiểm tra xem Pawn này có hỗ trợ hàm cầm súng không
+    if slua.isValid(uPlayerCharacter) and uPlayerCharacter.GetCurrentShootWeapon then
+        local CurrentWeapon = uPlayerCharacter:GetCurrentShootWeapon()
         
-        local shootComp = CurrentWeapon.ShootWeaponComponent
-        if not slua.isValid(shootComp) then return end
-
-        local ShootEntity = shootComp.ShootWeaponEntityComponent
-        local ShootEffect = shootComp.ShootWeaponEffectComp
-        
-        if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
-            if _G.LexusNotify then _G.LexusNotify("Đã nhận shootentity!") end
-            ShootEntity.VehicleDamageScale = 573.0
-            ShootEntity.BurstShootInterval = 0.0
-            ShootEntity.ShootInterval = 0.05
-            ShootEntity.AccessoriesVRecoilFactor = 0.13
-            ShootEntity.AccessoriesHRecoilFactor = 0.13
-            ShootEntity.GameDeviationFactor = 0.0
-            ShootEffect.CameraShakeInnerRadius = 0.0
+        if slua.isValid(CurrentWeapon) then
+            -- Lấy thẳng ShootWeaponEntity như file gốc (dòng 36)
+            -- Vẫn giữ phương án dự phòng lấy qua Component cho chắc cú
+            local ShootEntity = CurrentWeapon.ShootWeaponEntity 
+            if not slua.isValid(ShootEntity) and slua.isValid(CurrentWeapon.ShootWeaponComponent) then
+                ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
+            end
+            
+            local ShootEffect = CurrentWeapon.ShootWeaponEffectComp 
+            if not slua.isValid(ShootEffect) and slua.isValid(CurrentWeapon.ShootWeaponComponent) then
+                ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
+            end
+            
+            -- Áp dụng Mod khi mọi thứ đã load đầy đủ
+            if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
+                ShootEntity.VehicleDamageScale = 573.0
+                ShootEntity.BurstShootInterval = 0.0
+                ShootEntity.ShootInterval = 0.05
+                ShootEntity.AccessoriesVRecoilFactor = 0.13
+                ShootEntity.AccessoriesHRecoilFactor = 0.13
+                ShootEntity.GameDeviationFactor = 0.0
+                ShootEffect.CameraShakeInnerRadius = 0.0
+                
+                -- Bật dòng này lên để debug nếu cần
+                if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã kích hoạt!") end
+            end
         end
     end
 end
