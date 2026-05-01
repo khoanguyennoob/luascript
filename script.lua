@@ -1,84 +1,95 @@
 -- =============================================================
--- FILE: init_cloud.lua (TRÊN GITHUB) - INSTANCE HOOK
+-- FILE TRÊN GITHUB: LEXUSMOD RAM SCANNER HOOK
+-- Tuyệt đối không cần chạm vào file Local
 -- =============================================================
 
--- Hàm Notify chuẩn của bạn
 local function Notify(msg)
     pcall(function()
         local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
         if IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 4)
+            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
         end
     end)
 end
 
--- Hàm thực hiện truy tìm và cài Hook vào Thực thể Chat
-local function InstallInstanceHook()
-    -- 1. Lấy dữ liệu người chơi
-    local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
-    if not s or not GameplayData then return false end
+-- Máy quét bộ nhớ: Tìm và Hack class QuickMenu
+local function ScanAndHookRAM()
+    local isHooked = false
     
-    local PlayerController = GameplayData.GetPlayerController()
-    if not slua.isValid(PlayerController) then return false end
-    
-    -- 2. Dùng bí kíp của bạn: Rút ChatComponent từ Controller
-    local ChatComp = PlayerController:GetChatComponent()
-    if not slua.isValid(ChatComp) then return false end
-    
-    -- 3. Tiến hành cấy Hook trực tiếp vào Thực thể (Instance) này
-    if not _G.Lexus_InstanceChatHooked then
-        _G.Original_SendDirtyFilterLua = ChatComp.SendDirtyFilterLua
+    -- Duyệt toàn bộ package.loaded (Bộ nhớ đệm chứa tất cả các file Lua đã được game nạp)
+    for key, module in pairs(package.loaded) do
         
-        ChatComp.SendDirtyFilterLua = function(self, DirtyString, PrefixString, UID, bNeedTranslate)
-            local content = string.lower(tostring(DirtyString or ""))
+        -- Dấu hiệu nhận diện class QuickMenu: Là Table và chứa hàm SendTeamChat
+        if type(module) == "table" and type(module.SendTeamChat) == "function" and type(module.OnSendTeamClicked) == "function" then
             
-            -- NHẬN DIỆN LỆNH LOADMOD
-            if string.find(content, "loadmod") then
-                Notify("Đã nhận lệnh từ Instance! Đang tải Script...")
+            if not module.Lexus_Hooked then
+                -- Lưu lại hàm gốc trên RAM
+                local Org_SendTeamChat = module.SendTeamChat
                 
-                local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
-                if AWSHelper then
-                    local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
-                    AWSHelper:DownloadBinary(URL, function(res)
-                        if res:IsOK() then
-                            -- Thực thi Script
-                            pcall(function()
-                                require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
-                            end)
-                            
-                            -- Hẹn 2 giây sau báo thành công
-                            local time_ticker = require("common.time_ticker")
-                            time_ticker.AddTimerOnce(2, function()
-                                Notify("Kích hoạt Mod hoàn tất!")
+                -- Đè hàm mới trực tiếp vào RAM
+                module.SendTeamChat = function(self, Text)
+                    local content = string.lower(Text or "")
+                    
+                    -- NHẬN DIỆN LỆNH LOADMOD TRONG TRẬN
+                    if string.find(content, "loadmod") then
+                        Notify("Bắt được lệnh! Đang kéo Script...")
+                        
+                        local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
+                        if AWSHelper then
+                            local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
+                            AWSHelper:DownloadBinary(URL, function(res)
+                                if res:IsOK() then
+                                    pcall(function()
+                                        require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
+                                    end)
+                                    
+                                    local time_ticker = require("common.time_ticker")
+                                    time_ticker.AddTimerOnce(2, function()
+                                        Notify("Kích hoạt Mod hoàn tất!")
+                                    end)
+                                end
                             end)
                         end
-                    end)
+                        
+                        -- Đóng giao diện Chat và xóa chữ cho gọn
+                        pcall(function()
+                            if self.UIRoot and self.UIRoot.inputText then
+                                self.UIRoot.inputText:SetText("")
+                            end
+                            local InGameUITools = require("GameLua.Mod.BaseMod.Common.UI.InGameUITools")
+                            local MainControlBaseUI = InGameUITools.GetMainControlBaseUI()
+                            if MainControlBaseUI then MainControlBaseUI:HideQuickChatMenu() end
+                        end)
+                        
+                        return -- HỦY GỬI TIN NHẮN
+                    end
+                    
+                    -- Nếu không phải lệnh loadmod, trả về chat bình thường
+                    return Org_SendTeamChat(self, Text)
                 end
-                return -- Chặn không cho tin nhắn gửi đi
+                
+                module.Lexus_Hooked = true
+                Notify("Đã cấy Hook thành công vào QuickMenu!")
             end
             
-            -- Nếu không phải lệnh, gửi chat đi bình thường
-            if _G.Original_SendDirtyFilterLua then
-                return _G.Original_SendDirtyFilterLua(self, DirtyString, PrefixString, UID, bNeedTranslate)
-            end
+            isHooked = true
+            break -- Đã tìm thấy và Hook xong, thoát vòng lặp
         end
-        
-        _G.Lexus_InstanceChatHooked = true
-        Notify("Đã gắn bọ vào Chat In-game! Gõ 'loadmod'")
     end
     
-    return true -- Trả về true báo hiệu đã Hook thành công
+    return isHooked
 end
 
--- VÒNG LẶP SĂN TÌM: Đợi nhân vật thực sự sẵn sàng
-local function WaitAndHook()
-    -- Nếu InstallInstanceHook trả về false (nhân vật chưa rớt xuống đất hoặc chưa load xong)
-    if not InstallInstanceHook() then
-        -- Đợi 1 giây rồi thử lại
+-- Vòng lặp ngầm: Chờ đến khi game thực sự load QuickMenu vào RAM
+local function StartDaemon()
+    -- Nếu chưa tìm thấy QuickMenu (do đang ở Sảnh, game chưa load giao diện Trong trận)
+    if not pcall(ScanAndHookRAM) or not ScanAndHookRAM() then
+        -- Hẹn 2 giây sau quét RAM lại một lần
         local time_ticker = require("common.time_ticker")
-        time_ticker.AddTimerOnce(1, WaitAndHook)
+        time_ticker.AddTimerOnce(2, StartDaemon)
     end
 end
 
--- Khởi động máy dò
-pcall(WaitAndHook)
+-- Kích hoạt hệ thống ngay khi file Github được load
+pcall(StartDaemon)
+Notify("Radar đang dò tìm giao diện In-game...")
