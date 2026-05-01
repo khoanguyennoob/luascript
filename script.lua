@@ -1,55 +1,65 @@
 -- =============================================================
--- FILE: init_cloud.lua (TRÊN GITHUB) - PHIÊN BẢN MÁY X-QUANG
+-- FILE: init_cloud.lua (TRÊN GITHUB)
 -- =============================================================
 local ChatComponent = require("GameLua.Mod.BaseMod.Common.ChatComponent")
 
+-- Bê nguyên hàm Notify của bạn lên Cloud để dùng
 local function Notify(msg)
     pcall(function()
-        local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
-        if IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            -- Tăng thời gian hiện lên 4 giây để dễ đọc
-            IngameTipsTools.BattleNormalTips("Lexus Debug: " .. msg, 2, 4)
+        local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
+        if not s or not GameplayData then return end
+        local uPlayerController = GameplayData.GetPlayerController()
+        if not uPlayerController then return end
+
+        local s2, STExtraBlueprintFunctionLibrary = pcall(import, "STExtraBlueprintFunctionLibrary")
+        if s2 and STExtraBlueprintFunctionLibrary then
+            local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
+            if chatComp and chatComp.AddMsgInClient then
+                chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. msg .. "</>")
+            end
+        end
+
+        local s3, IngameTipsTools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
+        if s3 and IngameTipsTools and IngameTipsTools.BattleNormalTips then
+            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
         end
     end)
 end
 
+-- Hook vào hệ thống Chat
 if not _G.Lexus_ChatHooked then
     _G.Original_SendDirtyFilterLua = ChatComponent.SendDirtyFilterLua
 
     ChatComponent.SendDirtyFilterLua = function(self, DirtyString, PrefixString, UID, bNeedTranslate)
-        -- Ép kiểu chuỗi an toàn tuyệt đối
-        local raw_content = tostring(DirtyString or "")
-        local lower_content = string.lower(raw_content)
+        local content = string.lower(DirtyString or "")
+
+        Notify("Bạn vừa gõ: [" .. content .. "]")
         
-        -- MÁY X-QUANG: In ra màn hình CHÍNH XÁC những gì game nhận được
-        Notify("Bạn vừa gõ: [" .. raw_content .. "]")
-        
-        if string.find(lower_content, "loadmod") then
-            Notify("BẮT TRÚNG LỆNH! Đang kéo Script...")
+        -- Nhận diện ám hiệu từ người dùng
+        if content == "loadmod" then
             local h = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
             if h then
+                Notify("Đang kéo Script chính về máy...")
                 local scriptURL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
                 h:DownloadBinary(scriptURL, function(res)
                     if res:IsOK() then
                         pcall(function()
                             require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
                         end)
-                        
                         local time_ticker = require("common.time_ticker")
-                        time_ticker.AddTimerOnce(2, function()
-                            Notify("Script chạy thành công!")
-                        end)
-                    else
-                        Notify("Lỗi tải link Github (Script chính)!")
+                        time_ticker.AddTimerOnce(2, function() Notify("Kích hoạt Mod hoàn tất!") end)
                     end
                 end)
             end
-            return 
+            return -- Hủy tin nhắn "loadmod", không cho gửi lên máy chủ
         end
         
+        -- Các tin nhắn bình thường khác
         return _G.Original_SendDirtyFilterLua(self, DirtyString, PrefixString, UID, bNeedTranslate)
     end
     
     _G.Lexus_ChatHooked = true
-    Notify("Máy X-Quang đã bật! Thử gõ số 123 xem sao!")
+    
+    local time_ticker = require("common.time_ticker")
+    time_ticker.AddTimerOnce(2, function() Notify("HOOK hoàn tất!") end)
 end
