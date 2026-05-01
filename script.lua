@@ -27,6 +27,7 @@ Notify("Hệ thống Mod đang khởi động...")
 local function ApplyWeaponMod(PlayerRef)
     -- Lấy tham chiếu Player
     Notify("Đã chạy function!")
+    local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
     local LocalPlayer = GameplayData.GetPlayerCharacter()
 
     if not slua.isValid(LocalPlayer) then return end
@@ -35,11 +36,10 @@ local function ApplyWeaponMod(PlayerRef)
     if not slua.isValid(WeaponManager) then return end
     
     -- Lấy trực tiếp vũ khí đang cầm trên tay, bỏ qua việc kiểm tra nằm ở Slot số mấy
-    local CRWP = LocalPlayer.GetCurrentShootWeapon()
-    local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
+    local CurrentWeapon = LocalPlayer.GetCurrentShootWeapon()
     if slua.isValid(CurrentWeapon) then
-        local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
-        local ShootEffect = CurrentWeapon.ShootWeaponEffectComp
+        local ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
+        local ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
         
         if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
             -- Áp dụng thông số
@@ -56,9 +56,6 @@ local function ApplyWeaponMod(PlayerRef)
         end
     end
 end
-
-local uPlayerCharacter = GameplayData.GetPlayerCharacter()
-  local uCurrentShootWeapon = slua.isValid(uPlayerCharacter) and uPlayerCharacter.GetCurrentShootWeapon and uPlayerCharacter:GetCurrentShootWeapon()
 
 
 -- Timer xử lý độc lập để không làm hỏng Animation của nhân vật
