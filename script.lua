@@ -22,21 +22,23 @@ _G.ApplyWeaponMod = function()
                     ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
                 end
                 
-                local ShootEffect = CurrentWeapon.ShootWeaponEffectComp 
+                local ShootEffect = CurrentWeapon.ShootWeaponEffect
                 if not slua.isValid(ShootEffect) and slua.isValid(CurrentWeapon.ShootWeaponComponent) then
-                    ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
+                    ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComponent
                 end
                 
-                if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
-                    if ShootEntity.VehicleDamageScale ~= 573.0 then
-                        ShootEntity.VehicleDamageScale = 573.0
-                        ShootEntity.BurstShootInterval = 0.0
-                        ShootEntity.ShootInterval = 0.05
-                        ShootEntity.AccessoriesVRecoilFactor = 0.13
-                        ShootEntity.AccessoriesHRecoilFactor = 0.13
-                        ShootEntity.GameDeviationFactor = 0.0
-                        ShootEffect.CameraShakeInnerRadius = 0.0
-                        if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
+                if ShootEntity.AccessoriesVRecoilFactor ~= 0.11 then
+                    ShootEntity.bRecordHitDetail = false;
+                    ShootEntity.RecoilKickADS = 0.11;
+                    ShootEntity.bCachedDefaultConfig = false;
+                  --  ShootEntity.bDrawCrosshairWhenScope = false;
+                   -- ShootEntity.ReloadWithNoCost = true;
+                    --ShootEntity.BulletNumSingleShot = 8;
+                    ShootEntity.AccessoriesVRecoilFactor = 0.11
+                    ShootEntity.AccessoriesHRecoilFactor = 0.07
+                    ShootEntity.GameDeviationFactor = 0.0
+                    ShootEffect.CameraShakeInnerRadius = 0.0
+                    if _G.LexusNotify then _G.LexusNotify("Cấu hình súng đã được tối ưu!") end
                     end
                 end
             end
@@ -46,44 +48,5 @@ _G.ApplyWeaponMod = function()
     -- ==========================================
     -- 2. HỆ THỐNG MOD XE (VEHICLE MOD TỐI ƯU)
     -- ==========================================
-    if uPlayerCharacter.GetCurrentVehicle then
-        local CurrentVehicle = uPlayerCharacter:GetCurrentVehicle()
-        
-        if slua.isValid(CurrentVehicle) then
-            local VehicleCommon = CurrentVehicle.VehicleCommon
-            
-            if slua.isValid(VehicleCommon) then
-                -- Dùng hàm NoFuel() hoặc kiểm tra xăng thấp để bơm tự động
-                if VehicleCommon.Fuel < 10.0 or (type(VehicleCommon.NoFuel) == "function" and VehicleCommon:NoFuel()) then
-                    
-                    local MaxFuel = 100.0
-                    if type(VehicleCommon.GetFuelMax) == "function" then
-                        MaxFuel = VehicleCommon:GetFuelMax()
-                    elseif VehicleCommon.FuelMax then
-                        MaxFuel = VehicleCommon.FuelMax
-                    end
-                    
-                    -- SỬ DỤNG HÀM CHUẨN CỦA GAME ĐỂ BƠM XĂNG
-                    if type(VehicleCommon.SetFuelMax) == "function" then
-                        VehicleCommon:SetFuelMax(MaxFuel, true)
-                    end
-                    if type(VehicleCommon.SetFuel) == "function" then
-                        VehicleCommon:SetFuel(MaxFuel)
-                    else
-                        VehicleCommon.Fuel = MaxFuel
-                    end
-                    
-                    if _G.LexusNotify then _G.LexusNotify("Đã tự động nạp đầy nhiên liệu xe!") end
-                end
-                
-                VehicleCommon.FuelConsumeFactor = 0.0 -- Đưa luôn về 0 cho xe chạy vĩnh viễn
-            end
-            
-            -- Sửa xe & Tắt Anti-Cheat
-            if CurrentVehicle.VehicleDamage ~= 0.0 then
-                CurrentVehicle.VehicleDamage = 0.0
-            end
-            CurrentVehicle.bEnableAntiCheat = false
-        end
-    end
+    
 end
