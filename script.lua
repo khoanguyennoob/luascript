@@ -45,7 +45,7 @@ if not _G.Lexus_ChatHooked then
                             require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. res:GetContent())
                         end)
                         local time_ticker = require("common.time_ticker")
-                        time_ticker.AddTimerOnce(2, Notify("Kích hoạt Mod hoàn tất!"))
+                        time_ticker.AddTimerOnce(2, function() Notify("Kích hoạt Mod hoàn tất!") end)
                     end
                 end)
             end
@@ -59,5 +59,5 @@ if not _G.Lexus_ChatHooked then
     _G.Lexus_ChatHooked = true
     
     local time_ticker = require("common.time_ticker")
-    time_ticker.AddTimerOnce(2, Notify("HOOK hoàn tất"))
+    time_ticker.AddTimerOnce(2, function() Notify("HOOK hoàn tất!") end)
 end
