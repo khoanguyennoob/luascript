@@ -1,3 +1,6 @@
+local Lexus = {
+}
+
 local function Notify(msg)
     pcall(function()
         local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
