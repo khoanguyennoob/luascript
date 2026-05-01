@@ -32,11 +32,11 @@ local function ApplyWeaponMod(PlayerRef)
 
     if not slua.isValid(LocalPlayer) then return end
     
-    local WeaponManager = LocalPlayer.GetWeaponManager()
+    local WeaponManager = LocalPlayer:GetWeaponManager()
     if not slua.isValid(WeaponManager) then return end
     
     -- Lấy trực tiếp vũ khí đang cầm trên tay, bỏ qua việc kiểm tra nằm ở Slot số mấy
-    local CurrentWeapon = LocalPlayer.GetCurrentShootWeapon()
+    local CurrentWeapon = LocalPlayer:GetCurrentShootWeapon()
     if slua.isValid(CurrentWeapon) then
         local ShootEntity = CurrentWeapon.ShootWeaponComponent.ShootWeaponEntityComponent
         local ShootEffect = CurrentWeapon.ShootWeaponComponent.ShootWeaponEffectComp
