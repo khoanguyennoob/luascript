@@ -1,11 +1,26 @@
 -- Hệ thống Notify
+
+
+-- Bê nguyên hàm Notify của bạn lên Cloud để dùng
 local function Notify(msg)
     pcall(function()
-        local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
-        local s3, InGameUITools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameUITools")
-        if IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            IngameTipsTools.BattleNormalTips("Lexusmod: " .. tostring(msg), 2, 4)
-            chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. tostring(msg) .. " </>")
+        local ChatComponent = require("GameLua.Mod.BaseMod.Common.ChatComponent")
+        local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
+        if not s or not GameplayData then return end
+        local uPlayerController = GameplayData.GetPlayerController()
+        if not uPlayerController then return end
+
+        local s2, STExtraBlueprintFunctionLibrary = pcall(import, "STExtraBlueprintFunctionLibrary")
+        if s2 and STExtraBlueprintFunctionLibrary then
+            local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
+            if chatComp and chatComp.AddMsgInClient then
+                chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. msg .. "</>")
+            end
+        end
+
+        local s3, IngameTipsTools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
+        if s3 and IngameTipsTools and IngameTipsTools.BattleNormalTips then
+            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
         end
     end)
 end
