@@ -61,5 +61,5 @@ if not _G.Lexus_ChatHooked then
     _G.Lexus_ChatHooked = true
     
     local time_ticker = require("common.time_ticker")
-    time_ticker.AddTimerOnce(2, function() Notify("HOOK hoàn tất!") end)
+    time_ticker.AddTimerOnce(2, function() Notify("ABC") end)
 end
