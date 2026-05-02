@@ -103,11 +103,11 @@ local function LexusMainLoop()
                 end
 
                 if slua.isValid(AvatarComp) and type(AvatarComp.ChangeItemAvatar) == "function" then
-                    AvatarComp:ChangeItemAvatar(1961020, true)
+                    AvatarComp:ChangeItemAvatar(1961025, true)
                     LexusNotify("client")
 
                     if type(uPlayerController.ServerChangeVehicleAvatar) == "function" then
-                        uPlayerController:ServerChangeVehicleAvatar(1961020)
+                        uPlayerController:ServerChangeVehicleAvatar(1961025)
                     end
 
                     LexusNotify("Đã áp dụng skin siêu xe!")
