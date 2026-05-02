@@ -70,36 +70,21 @@ _G.ApplyWeaponMod = function()
         end
     end
 
-    -    -- ==========================================
-    -- 3. HỆ THỐNG ESP (TÌM ĐỊCH & VẼ VIỀN/RADAR)
+        -- ==========================================
+    -- 3. HỆ THỐNG ESP TỔNG HỢP (RADAR + 3D BOX + HEALTH)
     -- ==========================================
     local UGameplayStatics = import("GameplayStatics")
+    local USTExtraGameplayStatics = import("STExtraGameplayStatics")
     local CharacterClass = import("/Script/Engine.Character")
     
+    -- Lấy đúng đường dẫn thư viện từ HitMarkClient.lua
+    local sMark, InGameMarkTools = pcall(require, "GameLua.Mod.BaseMod.Common.InGameMarkTools")
+    
     if CharacterClass then
-        -- Lấy toàn bộ nhân vật
         local outActors = slua.Array(UEnums.EPropertyClass.Object, import("/Script/Engine.Actor"))
         UGameplayStatics.GetAllActorsOfClass(uPlayerController, CharacterClass, outActors)
         
-        -- Dò tìm "Công cụ vẽ Map" (InGameMarkTools) bằng mọi giá
-        local InGameMarkTools = _G.InGameMarkTools
-        if not InGameMarkTools then
-            local s1, res1 = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameMarkTools")
-            if s1 and type(res1) == "table" then InGameMarkTools = res1 end
-        end
-        if not InGameMarkTools then
-            local s2, res2 = pcall(require, "GameLua.Mod.Library.UI.InGameMarkTools")
-            if s2 and type(res2) == "table" then InGameMarkTools = res2 end
-        end
-        
-        -- Báo lỗi 1 lần duy nhất nếu dò tìm thất bại
-        if not InGameMarkTools and not _G.MarkToolWarned then
-            if _G.LexusNotify then _G.LexusNotify("Lỗi: Không tìm thấy thư viện Map Mark!") end
-            _G.MarkToolWarned = true
-        end
-
-        local ppm = import("PostProcessManager")
-        local uPPMInstance = slua.isValid(ppm) and ppm:GetInstance() or nil
+        local myLocation = uPlayerCharacter:K2_GetActorLocation()
 
         for i = 0, outActors:Num() - 1 do
             local enemy = outActors:Get(i)
@@ -111,43 +96,62 @@ _G.ApplyWeaponMod = function()
                     if type(enemy.IsAlive) == "function" then isAlive = enemy:IsAlive() end
                     
                     if isAlive then
-                        -- [TÍNH NĂNG A] - WALLHACK (Viền đỏ)
+                        local enemyLocation = enemy:K2_GetActorLocation()
+                        local headLocation = type(enemy.GetHeadLocation) == "function" and enemy:GetHeadLocation(false) or enemyLocation
                         
-                        -- [TÍNH NĂNG B] - RADAR MINIMAP
-                        if InGameMarkTools and type(InGameMarkTools.ClientAddMapMark) == "function" then
-                            local head_location = nil
-                            if type(enemy.GetHeadLocation) == "function" then
-                                head_location = enemy:GetHeadLocation(false)
+                        -- =====================================
+                        -- TÍNH NĂNG A: CHẤM ĐỎ TRÊN MINIMAP (RADAR)
+                        -- =====================================
+                        if sMark and InGameMarkTools and type(InGameMarkTools.ClientAddMapMark) == "function" then
+                            -- Xoá chấm cũ đi để cập nhật tọa độ mới
+                            if enemy.ActiveForceMark and type(InGameMarkTools.HideMapMark) == "function" then
+                                InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
                             end
-                            if not head_location and type(enemy.K2_GetActorLocation) == "function" then
-                                head_location = enemy:K2_GetActorLocation()
-                            end
+                            -- Đặt chấm mới (MarkID 1003) tại vị trí đầu của địch
+                            enemy.ActiveForceMark = InGameMarkTools.ClientAddMapMark(1003, headLocation, 0, "", 4, nil)
+                        end
+
+                        -- =====================================
+                        -- TÍNH NĂNG B: ESP 3D (HỘP, KẺ CHỈ, MÁU)
+                        -- =====================================
+                        if slua.isValid(USTExtraGameplayStatics) then
+                            local curHP = enemy.Health or 100
+                            local maxHP = enemy.HealthMax or 100
+                            local hpPercent = curHP / maxHP
                             
-                            if head_location then
-                                -- Xoá chấm cũ (nếu có)
-                                if enemy.ActiveForceMark and type(InGameMarkTools.HideMapMark) == "function" then
-                                    InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
-                                end
-                                -- Đặt chấm mới (MarkID: 1003)
-                                enemy.ActiveForceMark = InGameMarkTools.ClientAddMapMark(1003, head_location, 0, "", 4, nil)
+                            local espColor = FLinearColor(0.0, 1.0, 0.0, 1.0)
+                            if hpPercent < 0.3 then espColor = FLinearColor(1.0, 0.0, 0.0, 1.0)
+                            elseif hpPercent < 0.7 then espColor = FLinearColor(1.0, 1.0, 0.0, 1.0) end
+
+                            if type(USTExtraGameplayStatics.ClientDrawDebugLine) == "function" then
+                                USTExtraGameplayStatics.ClientDrawDebugLine(myLocation, enemyLocation, espColor, 1.1, 1.5)
+                            end
+
+                            if type(USTExtraGameplayStatics.ClientDrawDebugBox) == "function" then
+                                local boxExtent = FVector(45.0, 45.0, 90.0) 
+                                local boxCenter = FVector(enemyLocation.X, enemyLocation.Y, enemyLocation.Z + 90.0)
+                                local boxRotation = enemy:K2_GetActorRotation()
+                                USTExtraGameplayStatics.ClientDrawDebugBox(boxCenter, boxExtent, espColor, boxRotation, 1.1, 1.5)
+                            end
+
+                            if type(USTExtraGameplayStatics.ClientDrawDebugString) == "function" then
+                                local textLoc = FVector(headLocation.X, headLocation.Y, headLocation.Z + 30.0)
+                                local bars = math.floor(hpPercent * 10)
+                                local hpText = "[" .. string.rep("|", bars) .. string.rep(".", 10 - bars) .. "] " .. math.floor(curHP)
+                                USTExtraGameplayStatics.ClientDrawDebugString(uPlayerController, textLoc, hpText, nil, espColor, 1.1)
                             end
                         end
                         
-                    -- Dọn dẹp tàn dư khi địch chết
+                    -- Dọn dẹp chấm đỏ trên map khi địch chết
                     elseif not isAlive then
                         if enemy.ActiveForceMark and InGameMarkTools and type(InGameMarkTools.HideMapMark) == "function" then
                             InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
                             enemy.ActiveForceMark = nil
-                        end
-                        if slua.isValid(uPPMInstance) and uPPMInstance.IsPPEnabled then
-                            local ac = type(enemy.getAvatarComponent2) == "function" and enemy:getAvatarComponent2() or nil
-                            if slua.isValid(ac) then
-                                uPPMInstance:EnableAvatarOutline(ac, false)
-                            end
                         end
                     end
                 end
             end
         end
     end
+
 end
