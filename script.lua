@@ -105,17 +105,31 @@ local function LexusMainLoop()
 
         -- 2. MOD XE - CHỈNH SỬA XE CỦA PLAYER
         local playerVehicle = uPlayerCharacter:GetVehicleCommon()
-        if slua.isValid(playerVehicle) then
-            local FuelMax = playerVehicle:GetFuelMax()
-            playerVehicle:OnRep_Fuel(FuelMax)
-            playerVehicle:SetFuelMax(FuelMax, true)
-            playerVehicle:OnRep_Fuel(FuelMax)
-            LexusNotify("Có component")
-            -- Gọi ChangeSkin nếu xe có hàm này
-            if type(playerVehicle.ChangeSkin) == "function" then
-                playerVehicle:ChangeSkin(1001) -- Thay 1001 bằng SkinID mong muốn
+if slua.isValid(playerVehicle) then
+    -- Hồi xăng
+    LexusNotify("có component")
+    local FuelMax = playerVehicle:GetFuelMax()
+    playerVehicle:OnRep_Fuel(FuelMax)
+    playerVehicle:SetFuelMax(FuelMax, true)
+
+    -- Đổi Skin trực tiếp
+    local AvatarComponent = playerVehicle:GetAvatarComponent()
+    if slua.isValid(AvatarComponent) and type(AvatarComponent.ChangeItemAvatar) == "function" then
+        AvatarComponent:ChangeItemAvatar(1961020, true)
+        LexusNotify("if 1")
+    else
+        -- Nếu gọi trực tiếp không được thì thử qua CommonComponent
+        local VehicleCommon = playerVehicle:GetCommonComponent()
+        if slua.isValid(VehicleCommon) then
+            LexusNotify("if 2")
+            local AvatarComp2 = VehicleCommon:GetAvatarComponent()
+            if slua.isValid(AvatarComp2) then
+                AvatarComp2:ChangeItemAvatar(1961020, true)
+                LexusNotify("if 3")
             end
         end
+    end
+end
 
         -- 3. QUÉT TÌM ĐỊCH & TẠO DẤU RADAR
         for _, enemy in pairs(_G.LexusEnemyCache) do
