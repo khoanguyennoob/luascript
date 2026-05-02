@@ -118,12 +118,13 @@ if slua.isValid(playerVehicle) then
     
 
     -- Đổi Skin trực tiếp
+    local LastSKinID = 0
     local AvatarComponent = uPlayerCharacter:GetVehicleAvatar()
-    LexusNotify("sau avt")
-    if slua.isValid(AvatarComponent) and type(AvatarComponent.ChangeItemAvatar) == "function" then
+    if slua.isValid(AvatarComponent) and LastSKinID ~= 1961020 and type(AvatarComponent.ChangeItemAvatar) == "function" then
         AvatarComponent:ChangeItemAvatar(1961020, true)
         uPlayerController:ServerChangeVehicleAvatar(1961020)
         LexusNotify("if 1")
+        LastSKinID = 1961020
     else
         -- Nếu gọi trực tiếp không được thì thử qua CommonComponent
                 LexusNotify("KO có avtar")
