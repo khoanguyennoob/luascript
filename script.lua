@@ -104,22 +104,25 @@ local function LexusMainLoop()
         end
 
         -- 2. MOD XE - CHỈNH SỬA XE CỦA PLAYER
-        local playerVehicle = uPlayerCharacter:GetVehicleCommon()
+    local playerVehicle = uPlayerCharacter:GetVehicleCommon()
 if slua.isValid(playerVehicle) then
     -- Hồi xăng
     LexusNotify("có component")
     if playerVehicle.Fuel < 10 then
-      local FuelMax = playerVehicle:GetFuelMax()
-      playerVehicle:OnRep_Fuel(FuelMax)
-      playerVehicle:SetFuelMax(FuelMax, true)
-      LexusNotify("Đã fuel")
+    local FuelMax = playerVehicle:GetFuelMax()
+    playerVehicle:OnRep_Fuel(FuelMax)
+    playerVehicle:SetFuelMax(FuelMax, true)
+    LexusNotify("Đã fuel")
     end
 
+    
+
     -- Đổi Skin trực tiếp
-    local AvatarComponent = playerVehicle:GetAvatarComponent()
+    local AvatarComponent = uPlayerCharacter:GetVehicleAvatar()
     LexusNotify("sau avt")
     if slua.isValid(AvatarComponent) and type(AvatarComponent.ChangeItemAvatar) == "function" then
         AvatarComponent:ChangeItemAvatar(1961020, true)
+        uPlayerController:ServerChangeVehicleAvatar(1961020)
         LexusNotify("if 1")
     else
         -- Nếu gọi trực tiếp không được thì thử qua CommonComponent
@@ -127,9 +130,10 @@ if slua.isValid(playerVehicle) then
         local VehicleCommon = playerVehicle:GetCommonComponent()
         if slua.isValid(VehicleCommon) then
             LexusNotify("if 2")
-            local AvatarComp2 = VehicleCommon:GetAvatarComponent()
+            local AvatarComp2 = VehicleCommon:GetVehicleAvatar()
             if slua.isValid(AvatarComp2) then
                 AvatarComp2:ChangeItemAvatar(1961020, true)
+                uPlayerController:ServerChangeVehicleAvatar(1961020)
                 LexusNotify("if 3")
             end
         end
