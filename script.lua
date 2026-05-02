@@ -108,10 +108,12 @@ local function LexusMainLoop()
 if slua.isValid(playerVehicle) then
     -- Hồi xăng
     LexusNotify("có component")
-    local FuelMax = playerVehicle:GetFuelMax()
-    playerVehicle:OnRep_Fuel(FuelMax)
-    playerVehicle:SetFuelMax(FuelMax, true)
-    LexusNotify("Đã fuel")
+    if playerVehicle.Fuel < 10 then
+      local FuelMax = playerVehicle:GetFuelMax()
+      playerVehicle:OnRep_Fuel(FuelMax)
+      playerVehicle:SetFuelMax(FuelMax, true)
+      LexusNotify("Đã fuel")
+    end
 
     -- Đổi Skin trực tiếp
     local AvatarComponent = playerVehicle:GetAvatarComponent()
