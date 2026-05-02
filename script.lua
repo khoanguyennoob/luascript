@@ -23,6 +23,32 @@ _G.LexusNotify = function(msg)
     end)
 end
 
+local LexusVehicle = {}
+
+function LexusVehicle:ChangeSkin(VH_SkinID)
+    local CurrentVehicle = self:GetOwner()
+            if slua.isValid(CurrentVehicle) then
+                LexusNotify("Đang kiểm tra xe...")
+                local VehicleCommon = CurrentVehicle:GetCommonComponent()
+                if slua.isValid(VehicleCommon) then
+                    if VehicleCommon.Fuel < 10.0 or (type(VehicleCommon.NoFuel) == "function" and VehicleCommon:NoFuel()) then
+                        local MaxFuel = 100.0
+                        if type(VehicleCommon.GetFuelMax) == "function" then MaxFuel = VehicleCommon:GetFuelMax()
+                        elseif VehicleCommon.FuelMax then MaxFuel = VehicleCommon.FuelMax end
+                        
+                        if type(VehicleCommon.SetFuelMax) == "function" then VehicleCommon:SetFuelMax(MaxFuel, true) end
+                        if type(VehicleCommon.SetFuel) == "function" then VehicleCommon:SetFuel(MaxFuel) else VehicleCommon.Fuel = MaxFuel end
+                        if type(VehicleCommon.OnRep_Fuel) == "function" then VehicleCommon:OnRep_Fuel(MaxFuel) end
+                    end
+                    VehicleCommon.FuelConsumeFactor = 0.0
+                end
+                if CurrentVehicle.VehicleDamage ~= 0.0 then CurrentVehicle.VehicleDamage = 0.0 end
+                CurrentVehicle.bEnableAntiCheat = false
+            end
+
+end
+
+
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
 _G.LexusLastScan = _G.LexusLastScan or 0
 
@@ -80,27 +106,7 @@ local function LexusMainLoop()
         end
 
         -- 2. MOD XE
-        if uPlayerCharacter.GetCurrentVehicle then
-            local CurrentVehicle = uPlayerCharacter:GetCurrentVehicle()
-            if slua.isValid(CurrentVehicle) then
-                LexusNotify("Đang kiểm tra xe...")
-                local VehicleCommon = CurrentVehicle:GetCommonComponent()
-                if slua.isValid(VehicleCommon) then
-                    if VehicleCommon.Fuel < 10.0 or (type(VehicleCommon.NoFuel) == "function" and VehicleCommon:NoFuel()) then
-                        local MaxFuel = 100.0
-                        if type(VehicleCommon.GetFuelMax) == "function" then MaxFuel = VehicleCommon:GetFuelMax()
-                        elseif VehicleCommon.FuelMax then MaxFuel = VehicleCommon.FuelMax end
-                        
-                        if type(VehicleCommon.SetFuelMax) == "function" then VehicleCommon:SetFuelMax(MaxFuel, true) end
-                        if type(VehicleCommon.SetFuel) == "function" then VehicleCommon:SetFuel(MaxFuel) else VehicleCommon.Fuel = MaxFuel end
-                        if type(VehicleCommon.OnRep_Fuel) == "function" then VehicleCommon:OnRep_Fuel(MaxFuel) end
-                    end
-                    VehicleCommon.FuelConsumeFactor = 0.0
-                end
-                if CurrentVehicle.VehicleDamage ~= 0.0 then CurrentVehicle.VehicleDamage = 0.0 end
-                CurrentVehicle.bEnableAntiCheat = false
-            end
-        end
+       
 
         -- 3. QUÉT TÌM ĐỊCH & TẠO DẤU RADAR
         for _, enemy in pairs(_G.LexusEnemyCache) do
