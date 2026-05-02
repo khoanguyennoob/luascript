@@ -88,9 +88,11 @@ local function LexusMainLoop()
 
             -- [B] Đổi Skin (Sử dụng API uPlayerController:GetVehicleAvatar())
             if LastProcessedVehicle ~= playerVehicle then
+                LexusNotify("Đổi skin!")
                 local AvatarComp = nil
                 if type(uPlayerController.GetVehicleAvatar) == "function" then
                     AvatarComp = uPlayerController:GetVehicleAvatar()
+                    LexusNotify("Nhận avtarvh")
                 end
 
                 if not slua.isValid(AvatarComp) then
@@ -102,6 +104,7 @@ local function LexusMainLoop()
 
                 if slua.isValid(AvatarComp) and type(AvatarComp.ChangeItemAvatar) == "function" then
                     AvatarComp:ChangeItemAvatar(1961020, true)
+                    LexusNotify("client")
 
                     if type(uPlayerController.ServerChangeVehicleAvatar) == "function" then
                         uPlayerController:ServerChangeVehicleAvatar(1961020)
