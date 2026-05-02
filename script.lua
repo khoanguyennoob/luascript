@@ -29,24 +29,26 @@ function LexusVehicle:ChangeSkin(VH_SkinID)
     local CurrentVehicle = self:GetOwner()
             if slua.isValid(CurrentVehicle) then
                 LexusNotify("Đang kiểm tra xe...")
-                local VehicleCommon = CurrentVehicle:GetCommonComponent()
+                local VehicleCommon = self:GetCommonComponent()
                 if slua.isValid(VehicleCommon) then
-                    if VehicleCommon.Fuel < 10.0 or (type(VehicleCommon.NoFuel) == "function" and VehicleCommon:NoFuel()) then
-                        local MaxFuel = 100.0
-                        if type(VehicleCommon.GetFuelMax) == "function" then MaxFuel = VehicleCommon:GetFuelMax()
-                        elseif VehicleCommon.FuelMax then MaxFuel = VehicleCommon.FuelMax end
-                        
-                        if type(VehicleCommon.SetFuelMax) == "function" then VehicleCommon:SetFuelMax(MaxFuel, true) end
-                        if type(VehicleCommon.SetFuel) == "function" then VehicleCommon:SetFuel(MaxFuel) else VehicleCommon.Fuel = MaxFuel end
-                        if type(VehicleCommon.OnRep_Fuel) == "function" then VehicleCommon:OnRep_Fuel(MaxFuel) end
+                    local AvatarComponent = VehicleCommon:GetAvatarComponent()
+                    if slua.isValid(AvatarComponent) then
+                        AvatarComponent:ChangeItemAvatar(
+                    VH_SkinID, true)
+                        LexusNotify("Đã thay đổi skin xe thành công!")
+                    else
+                        LexusNotify("Không tìm thấy AvatarComponent trên xe.")
                     end
-                    VehicleCommon.FuelConsumeFactor = 0.0
                 end
                 if CurrentVehicle.VehicleDamage ~= 0.0 then CurrentVehicle.VehicleDamage = 0.0 end
                 CurrentVehicle.bEnableAntiCheat = false
             end
 
 end
+local class = require("class")
+local CVehicleBase = require("GameLua.GameCore.Module.Vehicle.ALuaVehicleBase")
+local CLexusVehicle = class(CVehicleBase, nil, LexusVehicle)
+return CLexusVehicle
 
 
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
@@ -105,8 +107,15 @@ local function LexusMainLoop()
             end
         end
 
-        -- 2. MOD XE
-       
+        -- 2. MOD XE - CHỈNH SỬA XE CỦA PLAYER
+        local playerVehicle = uPlayerController:GetVehicleUserComp()
+        if slua.isValid(playerVehicle) then
+            LexusNotify("Có component")
+            -- Gọi ChangeSkin nếu xe có hàm này
+            if type(playerVehicle.ChangeSkin) == "function" then
+                playerVehicle:ChangeSkin(1001) -- Thay 1001 bằng SkinID mong muốn
+            end
+        end
 
         -- 3. QUÉT TÌM ĐỊCH & TẠO DẤU RADAR
         for _, enemy in pairs(_G.LexusEnemyCache) do
