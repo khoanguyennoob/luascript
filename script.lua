@@ -33,22 +33,18 @@ function LexusVehicle:ChangeSkin(VH_SkinID)
                 if slua.isValid(VehicleCommon) then
                     local AvatarComponent = VehicleCommon:GetAvatarComponent()
                     if slua.isValid(AvatarComponent) then
-                        AvatarComponent:ChangeItemAvatar(
-                    VH_SkinID, true)
+                        AvatarComponent:ChangeItemAvatar(VH_SkinID, true)
                         LexusNotify("Đã thay đổi skin xe thành công!")
                     else
                         LexusNotify("Không tìm thấy AvatarComponent trên xe.")
                     end
                 end
-                if CurrentVehicle.VehicleDamage ~= 0.0 then CurrentVehicle.VehicleDamage = 0.0 end
+                CurrentVehicle.VehicleDamage = 0.0
                 CurrentVehicle.bEnableAntiCheat = false
             end
 
 end
-local class = require("class")
-local CVehicleBase = require("GameLua.GameCore.Module.Vehicle.ALuaVehicleBase")
-local CLexusVehicle = class(CVehicleBase, nil, LexusVehicle)
-return CLexusVehicle
+
 
 
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
@@ -187,3 +183,8 @@ if _G.LexusLoopRunning == nil then
     StartFastLoop()
     if _G.LexusNotify then _G.LexusNotify("Khởi động hệ thống ESP Real-time thành công!") end
 end
+
+local class = require("class")
+local CVehicleBase = require("GameLua.GameCore.Module.Vehicle.ALuaVehicleBase")
+local CLexusVehicle = class(CVehicleBase, nil, LexusVehicle)
+return CLexusVehicle
