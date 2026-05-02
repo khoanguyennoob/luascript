@@ -108,7 +108,7 @@ local function LexusMainLoop()
         end
 
         -- 2. MOD XE - CHỈNH SỬA XE CỦA PLAYER
-        local playerVehicle = uPlayerController:GetVehicleUserComp()
+        local playerVehicle = uPlayerCharacter:GetVehicleCommon()
         if slua.isValid(playerVehicle) then
             LexusNotify("Có component")
             -- Gọi ChangeSkin nếu xe có hàm này
