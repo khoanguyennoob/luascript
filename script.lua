@@ -31,6 +31,7 @@ end
 -- ==========================================
 -- HÀM LOGIC CHÍNH
 -- ==========================================
+
 local function LexusMainLoop()
     local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
     if not s or not GameplayData then return end
@@ -58,7 +59,7 @@ local function LexusMainLoop()
                     local shootComp = CurrentWeapon.ShootWeaponComponent
                     local ShootEntity = CurrentWeapon.ShootWeaponEntity or (shootComp and shootComp.ShootWeaponEntityComponent)
                     local ShootEffect = CurrentWeapon.ShootWeaponEffect or (shootComp and (shootComp.ShootWeaponEffectComp or shootComp.ShootWeaponEffectComponent))
-                    
+
                     if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
                         if ShootEntity.AccessoriesVRecoilFactor ~= 0.11 then
                             ShootEntity.bRecordHitDetail = false
@@ -75,52 +76,44 @@ local function LexusMainLoop()
 
         -- 2. MOD XE (Xăng & Skin)
         local playerVehicle = uPlayerCharacter:GetVehicleCommon()
-if slua.isValid(playerVehicle) then
-    
-    -- [A] Hồi xăng (Chỉ nạp khi xăng dưới 10%)
-    local currentFuel = playerVehicle.Fuel or 0
-    if currentFuel < 10 then
-        local FuelMax = playerVehicle:GetFuelMax()
-        playerVehicle:OnRep_Fuel(FuelMax)
-        playerVehicle:SetFuelMax(FuelMax, true)
-        LexusNotify("Đã nạp đầy xăng!")
-    end
-
-    -- [B] Đổi Skin (Sử dụng API uPlayerController:GetVehicleAvatar())
-    -- Kiểm tra nếu là xe mới (chưa xử lý) thì mới thực hiện
-    if LastProcessedVehicle ~= playerVehicle then
-        
-        -- Gọi hàm lấy Avatar qua Controller như bạn chỉ định
-        local AvatarComp = nil
-        if type(uPlayerController.GetVehicleAvatar) == "function" then
-            AvatarComp = uPlayerController:GetVehicleAvatar()
-        end
-
-        -- Nếu lấy qua Controller không được, thử lấy qua Common như phương án dự phòng
-        if not slua.isValid(AvatarComp) then
-            local VehicleCommon = playerVehicle:GetCommonComponent()
-            if slua.isValid(VehicleCommon) and type(VehicleCommon.GetAvatarComponent) == "function" then
-                AvatarComp = VehicleCommon:GetAvatarComponent()
+        if slua.isValid(playerVehicle) then
+            -- [A] Hồi xăng (Chỉ nạp khi xăng dưới 10%)
+            local currentFuel = playerVehicle.Fuel or 0
+            if currentFuel < 10 then
+                local FuelMax = playerVehicle:GetFuelMax()
+                playerVehicle:OnRep_Fuel(FuelMax)
+                playerVehicle:SetFuelMax(FuelMax, true)
+                LexusNotify("Đã nạp đầy xăng!")
             end
-        end
 
-        -- Thực thi đổi skin
-        if slua.isValid(AvatarComp) and type(AvatarComp.ChangeItemAvatar) == "function" then
-            AvatarComp:ChangeItemAvatar(1961020, true)
-            
-            -- Đồng bộ Server
-            if type(uPlayerController.ServerChangeVehicleAvatar) == "function" then
-                uPlayerController:ServerChangeVehicleAvatar(1961020)
+            -- [B] Đổi Skin (Sử dụng API uPlayerController:GetVehicleAvatar())
+            if LastProcessedVehicle ~= playerVehicle then
+                local AvatarComp = nil
+                if type(uPlayerController.GetVehicleAvatar) == "function" then
+                    AvatarComp = uPlayerController:GetVehicleAvatar()
+                end
+
+                if not slua.isValid(AvatarComp) then
+                    local VehicleCommon = playerVehicle:GetCommonComponent()
+                    if slua.isValid(VehicleCommon) and type(VehicleCommon.GetAvatarComponent) == "function" then
+                        AvatarComp = VehicleCommon:GetAvatarComponent()
+                    end
+                end
+
+                if slua.isValid(AvatarComp) and type(AvatarComp.ChangeItemAvatar) == "function" then
+                    AvatarComp:ChangeItemAvatar(1961020, true)
+
+                    if type(uPlayerController.ServerChangeVehicleAvatar) == "function" then
+                        uPlayerController:ServerChangeVehicleAvatar(1961020)
+                    end
+
+                    LexusNotify("Đã áp dụng skin siêu xe!")
+                    LastProcessedVehicle = playerVehicle
+                end
             end
-            
-            LexusNotify("Đã áp dụng skin siêu xe!")
-            LastProcessedVehicle = playerVehicle -- Lưu lại xe này để không chạy lại nữa
+        else
+            LastProcessedVehicle = nil
         end
-    end
-else
-    -- Khi không còn ngồi trên xe, reset biến tạm để sẵn sàng cho chiếc xe tiếp theo
-    LastProcessedVehicle = nil
-end
 
         -- 3. QUÉT ĐỊCH (ESP RADAR)
         for _, enemy in pairs(_G.LexusEnemyCache) do
@@ -129,11 +122,13 @@ end
                 enemy.ActiveForceMark = nil
             end
         end
-        _G.LexusEnemyCache = {} 
+
+        _G.LexusEnemyCache = {}
         if CharacterClass then
             local outActors = slua.Array(UEnums.EPropertyClass.Object, import("/Script/Engine.Actor"))
             UGameplayStatics.GetAllActorsOfClass(uPlayerController, CharacterClass, outActors)
             local myKey = uPlayerCharacter.PlayerKey
+
             for i = 0, outActors:Num() - 1 do
                 local enemy = outActors:Get(i)
                 if slua.isValid(enemy) and enemy.PlayerKey ~= myKey and enemy.TeamID ~= uPlayerCharacter.TeamID then
@@ -162,8 +157,10 @@ end
 -- ==========================================
 -- KHỞI CHẠY HỆ THỐNG
 -- ==========================================
+
 if _G.LexusLoopRunning == nil then
     _G.LexusLoopRunning = true
+
     local function StartFastLoop()
         pcall(LexusMainLoop)
         local s, time_ticker = pcall(require, "common.time_ticker")
@@ -171,12 +168,18 @@ if _G.LexusLoopRunning == nil then
             time_ticker.AddTimerOnce(0.03, StartFastLoop)
         end
     end
+
     StartFastLoop()
     _G.LexusNotify("Hệ thống Lexus Mod đã kích hoạt!")
 end
 
+
+-- ==========================================
 -- ĐĂNG KÝ CLASS XE
+-- ==========================================
+
 local LexusVehicleClass = {}
+
 function LexusVehicleClass:ChangeSkin(VH_SkinID)
     local CurrentVehicle = self:GetOwner()
     if slua.isValid(CurrentVehicle) then
@@ -193,4 +196,5 @@ end
 local class = require("class")
 local CVehicleBase = require("GameLua.GameCore.Module.Vehicle.ALuaVehicleBase")
 local CLexusVehicle = class(CVehicleBase, nil, LexusVehicleClass)
+
 return CLexusVehicle
