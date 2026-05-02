@@ -49,7 +49,7 @@ end
 
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
 _G.LexusLastScan = _G.LexusLastScan or 0
-
+local LastSKinID = 0
 -- HÀM LOGIC CHÍNH
 local function LexusMainLoop()
     local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
@@ -118,7 +118,7 @@ if slua.isValid(playerVehicle) then
     
 
     -- Đổi Skin trực tiếp
-    local LastSKinID = 0
+
     local AvatarComponent = uPlayerCharacter:GetVehicleAvatar()
     if slua.isValid(AvatarComponent) and LastSKinID ~= 1961020 and type(AvatarComponent.ChangeItemAvatar) == "function" then
         AvatarComponent:ChangeItemAvatar(1961020, true)
