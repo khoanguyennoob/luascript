@@ -117,6 +117,7 @@ if slua.isValid(playerVehicle) then
 
     -- Đổi Skin trực tiếp
     local AvatarComponent = playerVehicle:GetAvatarComponent()
+    LexusNotify("sau avt")
     if slua.isValid(AvatarComponent) and type(AvatarComponent.ChangeItemAvatar) == "function" then
         AvatarComponent:ChangeItemAvatar(1961020, true)
         LexusNotify("if 1")
