@@ -111,6 +111,7 @@ if slua.isValid(playerVehicle) then
     local FuelMax = playerVehicle:GetFuelMax()
     playerVehicle:OnRep_Fuel(FuelMax)
     playerVehicle:SetFuelMax(FuelMax, true)
+    LexusNotify("Đã fuel")
 
     -- Đổi Skin trực tiếp
     local AvatarComponent = playerVehicle:GetAvatarComponent()
@@ -119,6 +120,7 @@ if slua.isValid(playerVehicle) then
         LexusNotify("if 1")
     else
         -- Nếu gọi trực tiếp không được thì thử qua CommonComponent
+                LexusNotify("KO có avtar")
         local VehicleCommon = playerVehicle:GetCommonComponent()
         if slua.isValid(VehicleCommon) then
             LexusNotify("if 2")
