@@ -110,6 +110,10 @@ local function LexusMainLoop()
         -- 2. MOD XE - CHỈNH SỬA XE CỦA PLAYER
         local playerVehicle = uPlayerCharacter:GetVehicleCommon()
         if slua.isValid(playerVehicle) then
+            local FuelMax = playerVehicle:GetFuelMax()
+            playerVehicle:OnRep_Fuel(FuelMax)
+            playerVehicle:SetFuelMax(FuelMax, true)
+            playerVehicle:OnRep_Fuel(FuelMax)
             LexusNotify("Có component")
             -- Gọi ChangeSkin nếu xe có hàm này
             if type(playerVehicle.ChangeSkin) == "function" then
