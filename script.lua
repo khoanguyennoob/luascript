@@ -70,49 +70,51 @@ _G.ApplyWeaponMod = function()
         end
     end
 
-    -- ==========================================
-    -- 3. HỆ THỐNG ESP (TÌM ĐỊCH & VẼ VIỀN)
+    -    -- ==========================================
+    -- 3. HỆ THỐNG ESP (TÌM ĐỊCH & VẼ VIỀN/RADAR)
     -- ==========================================
     local UGameplayStatics = import("GameplayStatics")
     local CharacterClass = import("/Script/Engine.Character")
     
     if CharacterClass then
-        -- Lấy toàn bộ nhân vật có trên bản đồ
+        -- Lấy toàn bộ nhân vật
         local outActors = slua.Array(UEnums.EPropertyClass.Object, import("/Script/Engine.Actor"))
         UGameplayStatics.GetAllActorsOfClass(uPlayerController, CharacterClass, outActors)
         
-        -- Gọi các thư viện UI (Cần dùng pcall để an toàn)
-        local sMark, InGameMarkTools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameMarkTools")
+        -- Dò tìm "Công cụ vẽ Map" (InGameMarkTools) bằng mọi giá
+        local InGameMarkTools = _G.InGameMarkTools
+        if not InGameMarkTools then
+            local s1, res1 = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameMarkTools")
+            if s1 and type(res1) == "table" then InGameMarkTools = res1 end
+        end
+        if not InGameMarkTools then
+            local s2, res2 = pcall(require, "GameLua.Mod.Library.UI.InGameMarkTools")
+            if s2 and type(res2) == "table" then InGameMarkTools = res2 end
+        end
+        
+        -- Báo lỗi 1 lần duy nhất nếu dò tìm thất bại
+        if not InGameMarkTools and not _G.MarkToolWarned then
+            if _G.LexusNotify then _G.LexusNotify("Lỗi: Không tìm thấy thư viện Map Mark!") end
+            _G.MarkToolWarned = true
+        end
+
         local ppm = import("PostProcessManager")
         local uPPMInstance = slua.isValid(ppm) and ppm:GetInstance() or nil
 
         for i = 0, outActors:Num() - 1 do
             local enemy = outActors:Get(i)
             
-            -- Nếu đây là nhân vật hợp lệ và không phải là bản thân mình
             if slua.isValid(enemy) and enemy ~= uPlayerCharacter then
-                
-                -- Phân biệt Địch / Ta bằng TeamID
                 if enemy.TeamID and enemy.TeamID ~= uPlayerCharacter.TeamID then
                     
                     local isAlive = true
                     if type(enemy.IsAlive) == "function" then isAlive = enemy:IsAlive() end
                     
                     if isAlive then
-                        -- TÍNH NĂNG A: BẬT WALLHACK (Viền đỏ)
-                        if slua.isValid(uPPMInstance) and uPPMInstance.IsPPEnabled then
-                            local ac = type(enemy.getAvatarComponent2) == "function" and enemy:getAvatarComponent2() or nil
-                            if slua.isValid(ac) then
-                                uPPMInstance.OutlineThickness = 10
-                                if uPPMInstance.OutlineColor then
-                                    uPPMInstance.OutlineColor = { r = 15, g = 0, b = 0, a = 1000 }
-                                end
-                                uPPMInstance:EnableAvatarOutline(ac, true)
-                            end
-                        end
+                        -- [TÍNH NĂNG A] - WALLHACK (Viền đỏ)
                         
-                        -- TÍNH NĂNG B: RADAR MINIMAP
-                        if sMark and InGameMarkTools and type(InGameMarkTools.ClientAddMapMark) == "function" then
+                        -- [TÍNH NĂNG B] - RADAR MINIMAP
+                        if InGameMarkTools and type(InGameMarkTools.ClientAddMapMark) == "function" then
                             local head_location = nil
                             if type(enemy.GetHeadLocation) == "function" then
                                 head_location = enemy:GetHeadLocation(false)
@@ -122,18 +124,18 @@ _G.ApplyWeaponMod = function()
                             end
                             
                             if head_location then
-                                -- Xoá chấm cũ để tránh lag/spam trên map
+                                -- Xoá chấm cũ (nếu có)
                                 if enemy.ActiveForceMark and type(InGameMarkTools.HideMapMark) == "function" then
                                     InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
                                 end
-                                -- Đặt chấm mới (MarkID 1003)
+                                -- Đặt chấm mới (MarkID: 1003)
                                 enemy.ActiveForceMark = InGameMarkTools.ClientAddMapMark(1003, head_location, 0, "", 4, nil)
                             end
                         end
                         
-                    -- NẾU ĐỊCH ĐÃ CHẾT: TẮT VIỀN VÀ XÓA RADAR
+                    -- Dọn dẹp tàn dư khi địch chết
                     elseif not isAlive then
-                        if enemy.ActiveForceMark and sMark and type(InGameMarkTools.HideMapMark) == "function" then
+                        if enemy.ActiveForceMark and InGameMarkTools and type(InGameMarkTools.HideMapMark) == "function" then
                             InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
                             enemy.ActiveForceMark = nil
                         end
