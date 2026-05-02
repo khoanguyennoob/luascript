@@ -110,8 +110,8 @@ local function LexusMainLoop()
         if uPlayerCharacter.GetCurrentVehicle then
             local CurrentVehicle = uPlayerCharacter:GetCurrentVehicle()
             if slua.isValid(CurrentVehicle) then
-                local VehicleCommon = CurrentVehicle:GetCommonComponent()
                 LexusNotify("Đang kiểm tra xe...")
+                local VehicleCommon = CurrentVehicle:GetCommonComponent()
                 if slua.isValid(VehicleCommon) then
                     if VehicleCommon.Fuel < 10.0 or (type(VehicleCommon.NoFuel) == "function" and VehicleCommon:NoFuel()) then
                         local MaxFuel = 100.0
