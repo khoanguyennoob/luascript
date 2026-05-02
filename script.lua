@@ -25,6 +25,33 @@ end
 
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
 _G.LexusLastScan = _G.LexusLastScan or 0
+_G.LexusMarkPool = _G.LexusMarkPool or {}
+_G.LexusVisibleMarks = {}
+_G.LexusMaxVisibleMarks = 10  -- Tăng giới hạn hiển thị từ 4 lên 10
+
+-- POOL MARKS - Tái sử dụng marks để tránh giới hạn 4
+local function LexusInitMarkPool()
+    if #_G.LexusMarkPool == 0 then
+        for i = 1, _G.LexusMaxVisibleMarks do
+            _G.LexusMarkPool[i] = InGameMarkTools.ClientAddMapMark(1003, FVector(0, 0, 0), 0, "", 0, nil)
+            if _G.LexusMarkPool[i] then
+                InGameMarkTools.HideMapMark(_G.LexusMarkPool[i])
+            end
+        end
+        LexusNotify("Mark Pool Initialized: " .. _G.LexusMaxVisibleMarks .. " marks")
+    end
+end
+
+-- ASSIGN MARK TỪ POOL
+local function LexusAssignMarkToEnemy(enemy, markIdx)
+    if not markIdx or not _G.LexusMarkPool[markIdx] then return nil end
+    
+    local headLocation = type(enemy.GetHeadLocation) == "function" and enemy:GetHeadLocation(false) or enemy:K2_GetActorLocation()
+    InGameMarkTools.UpdateMapMarkLocation(_G.LexusMarkPool[markIdx], headLocation)
+    InGameMarkTools.ShowMapMark(_G.LexusMarkPool[markIdx])
+    
+    return _G.LexusMarkPool[markIdx]
+end
 
 -- HÀM LOGIC CHÍNH
 local function LexusMainLoop()
@@ -102,25 +129,34 @@ local function LexusMainLoop()
             end
         end
 
-        -- 3. QUÉT TÌM ĐỊCH & TẠO DẤU RADAR
-        for _, enemy in pairs(_G.LexusEnemyCache) do
-            if slua.isValid(enemy) and enemy.ActiveForceMark and sMark and type(InGameMarkTools.HideMapMark) == "function" then
+        -- 3. QUÉT TÌM ĐỊCH & TẠO DẤU RADAR (SỬ DỤNG MARK POOL)
+        for idx, enemy in pairs(_G.LexusEnemyCache) do
+            if slua.isValid(enemy) then
                 InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
-                enemy.ActiveForceMark = nil
             end
         end
         _G.LexusEnemyCache = {} 
+        _G.LexusVisibleMarks = {}
+        
         if CharacterClass then
             local outActors = slua.Array(UEnums.EPropertyClass.Object, import("/Script/Engine.Actor"))
             UGameplayStatics.GetAllActorsOfClass(uPlayerController, CharacterClass, outActors)
             local myKey = uPlayerCharacter.PlayerKey
+            local markIdx = 1
+            
             for i = 0, outActors:Num() - 1 do
                 local enemy = outActors:Get(i)
                 if slua.isValid(enemy) and enemy.PlayerKey ~= myKey and enemy.TeamID ~= uPlayerCharacter.TeamID then
                     table.insert(_G.LexusEnemyCache, enemy)
-                    if sMark and type(InGameMarkTools.ClientAddMapMark) == "function" then
-                        local loc = type(enemy.GetHeadLocation) == "function" and enemy:GetHeadLocation(false) or enemy:K2_GetActorLocation()
-                        enemy.ActiveForceMark = InGameMarkTools.ClientAddMapMark(1003, loc, 0, "", i, nil)
+                    
+                    -- Gán mark từ pool (tái sử dụng)
+                    if markIdx <= _G.LexusMaxVisibleMarks then
+                        enemy.ActiveForceMark = LexusAssignMarkToEnemy(enemy, markIdx)
+                        table.insert(_G.LexusVisibleMarks, {mark = enemy.ActiveForceMark, enemy = enemy, idx = markIdx})
+                        markIdx = markIdx + 1
+                    else
+                        -- Nếu vượt quá pool, dùng direct draw thay vì mark
+                        enemy.UseDirectDraw = true
                     end
                 end
             end
@@ -131,19 +167,20 @@ local function LexusMainLoop()
     -- [LUỒNG NHANH] Cập nhật hình ảnh mỗi 0.03 giây
     -- ==========================================
     local myLocation = uPlayerCharacter:K2_GetActorLocation()
-    for _, enemy in pairs(_G.LexusEnemyCache) do
+    for _, markData in pairs(_G.LexusVisibleMarks) do
+        local enemy = markData.enemy
         if slua.isValid(enemy) then
             local isAlive = type(enemy.IsAlive) == "function" and enemy:IsAlive() or true
             if isAlive then
                 local enemyLocation = enemy:K2_GetActorLocation()
                 local headLocation = type(enemy.GetHeadLocation) == "function" and enemy:GetHeadLocation(false) or enemyLocation
                 
-                -- Làm mượt Radar
-                if enemy.ActiveForceMark and sMark and type(InGameMarkTools.UpdateMapMarkLocation) == "function" then
-                    InGameMarkTools.UpdateMapMarkLocation(enemy.ActiveForceMark, headLocation)
+                -- Cập nhật mark location MỘT LẦN DÙNG UpdateMapMarkLocation (hiệu quả hơn)
+                if markData.mark then
+                    InGameMarkTools.UpdateMapMarkLocation(markData.mark, headLocation)
                 end
                 
-                -- Làm mượt ESP 3D (Duration = 0.0)
+                -- Vẽ ESP 3D (Duration = 0.0 để smooth)
                 if slua.isValid(USTExtraGameplayStatics) then
                     local curHP = enemy.Health or 100
                     local maxHP = enemy.HealthMax or 100
@@ -168,10 +205,32 @@ local function LexusMainLoop()
                         USTExtraGameplayStatics.ClientDrawDebugString(textLoc, tostring(hpText), enemy, espColor, 0.0)
                     end
                 end
-            elseif not isAlive and enemy.ActiveForceMark then
-                if sMark and type(InGameMarkTools.HideMapMark) == "function" then
-                    InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
-                    enemy.ActiveForceMark = nil
+            elseif not isAlive and markData.mark then
+                InGameMarkTools.HideMapMark(markData.mark)
+            end
+        end
+    end
+    
+    -- Vẽ direct marks cho địch vượt quá pool (không bị giới hạn 4)
+    for _, enemy in pairs(_G.LexusEnemyCache) do
+        if slua.isValid(enemy) and enemy.UseDirectDraw then
+            local isAlive = type(enemy.IsAlive) == "function" and enemy:IsAlive() or true
+            if isAlive then
+                local enemyLocation = enemy:K2_GetActorLocation()
+                local myLocation = uPlayerCharacter:K2_GetActorLocation()
+                local curHP = enemy.Health or 100
+                local maxHP = enemy.HealthMax or 100
+                local hpPercent = curHP / maxHP
+                
+                local espColor = FLinearColor(1.0, 0.0, 0.0, 1.0)
+                if hpPercent > 0.7 then espColor = FLinearColor(0.0, 1.0, 0.0, 1.0)
+                elseif hpPercent > 0.3 then espColor = FLinearColor(1.0, 1.0, 0.0, 1.0) end
+
+                -- Vẽ direct thay vì dùng marks (không có giới hạn 4)
+                if slua.isValid(USTExtraGameplayStatics) then
+                    if type(USTExtraGameplayStatics.ClientDrawDebugLine) == "function" then
+                        USTExtraGameplayStatics.ClientDrawDebugLine(myLocation, enemyLocation, espColor, 0.0, 1.5)
+                    end
                 end
             end
         end
@@ -183,6 +242,10 @@ end
 -- ==========================================
 if _G.LexusLoopRunning == nil then
     _G.LexusLoopRunning = true
+    
+    -- Khởi tạo mark pool trước
+    LexusInitMarkPool()
+    
     local function StartFastLoop()
         pcall(LexusMainLoop)
         local s, time_ticker = pcall(require, "common.time_ticker")
@@ -192,5 +255,5 @@ if _G.LexusLoopRunning == nil then
         end
     end
     StartFastLoop()
-    if _G.LexusNotify then _G.LexusNotify("Khởi động hệ thống ESP Real-time thành công!") end
+    if _G.LexusNotify then _G.LexusNotify("Khởi động hệ thống ESP Real-time với Mark Pool (10 marks) thành công!") end
 end
