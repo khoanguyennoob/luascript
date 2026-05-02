@@ -1,55 +1,71 @@
+🚗 Vehicle Effect Change 🚗
 
-function BRPlayerCharacterBase:ApplyWeaponConfig()
-    -- Import class từ Unreal Engine
-    local LocalPlayer = self:GetPlayerCharacterSafety()
-    if not slua.isValid(LocalPlayer) then
-      return
-    end
-    
-    
-    local WeaponManager = LocalPlayer.WeaponManagerComponent
-    if not slua.isValid(WeaponManager) then
-        return false
-    end
-    
-    -- Lấy slot vũ khí hiện tại
-    local Slot = WeaponManager:GetCurrentUsingPropSlot()
-    local SlotValue = tonumber(Slot:GetValue()) or 0
-    
-    if SlotValue >= 1 and SlotValue <= 3 then
-        local CurrentWeapon = WeaponManager.CurrentWeaponReplicated
-        
-        if slua.isValid(CurrentWeapon) then
-            local ShootEntity = CurrentWeapon.ShootWeaponEntityComp
-            local ShootEffect = CurrentWeapon.ShootWeaponEffectComp
-            
-            -- Kiểm tra cả 2 component có hợp lệ không
-            if slua.isValid(ShootEntity) and slua.isValid(ShootEffect) then
-                
-                    ShootEntity.VehicleDamageScale = 573.0
-                    ShootEntity.BurstShootInterval = 0.0
-                    ShootEntity.ShootIntervalShowNumber = 990
-                    ShootEntity.ShootInterval = 0.05
-                    ShootEntity.ExtraShootInterval = 0.05
-                    ShootEntity.bRecordHitDetail = false
-                    ShootEntity.AccessoriesVRecoilFactor = 0.11
-                    ShootEntity.AccessoriesHRecoilFactor = 0.11
-                    ShootEntity.GameDeviationFactor = 0.0
-                    ShootEntity.MaxDamageRate = 0
-                    ShootEntity.RecoilKickADS = 0.11
-                    ShootEntity.AccessoriesVRecoilFactor = 0.13
-                    ShootEntity.AccessoriesHRecoilFactor = 0.13
-                    ShootEffect.CameraShakeInnerRadius = 0.0
-                    ShootEffect.CameraShakeOuterRadius = 0.0
-                    ShootEffect.CameraShakFalloff = 0.000001
-                    ShootEntity.GameDeviationFactor = 0.0
-                    ShootEntity.GameDeviationAccuracy = 0.0
-            end
-        end
-    end
+local VehicleAvatarComponent = require("GameLua.GameCore.Module.Vehicle.Component.VehicleAvatarComponent")
 
-    pcall(function() 
-            BRPlayerCharacterBase:ApplyWeaponConfig() 
-        end)
-    return false
+VehicleAvatarComponent.__inner_impl.CheckCanPlaySkinSwitchEffect = function(self, curVehicleId, lastVehicleId)
+    return true
 end
+
+VehicleAvatarComponent.__inner_impl.ShowVehicleSwitchEffect = function(self)
+    if not self.curSwitchEffectId or self.curSwitchEffectId <= 0 then
+        self.curSwitchEffectId = 7303001
+    end
+
+    local vehicleActor = self:GetOwner()
+    if not slua.isValid(vehicleActor) then return false end
+
+    if self.uSwitchEffectActor then
+        self:StopSkinSwitchEffect()
+        self.uSwitchEffectActor:K2_DestroyActor()
+        self.uSwitchEffectActor = nil
+    end
+
+    if not self.lastEquipedAvatarId or self.lastEquipedAvatarId <= 0 then
+        self.lastEquipedAvatarId = vehicleActor.ClientUsedAvatarID or vehicleActor:GetDefaultAvatarID() or 0
+    end
+
+    local currentAvatarID = vehicleActor.ClientUsedAvatarID or self.lastEquipedAvatarId or 0
+    local bIsLobbyActor = self:IsLobbyActor()
+    local world = slua_GameFrontendHUD:GetWorld()
+    local VehiclePlateLicenseUtil = require("GameLua.Activity.Commercialize.GamePlay.Vehicle.VehiclePlateLicenseUtil")
+    local SkinSwitchEffectActorPath = VehiclePlateLicenseUtil.GetSwitchEffectActorPath()
+    local BP_DissolveVehicleClass = import(SkinSwitchEffectActorPath)
+
+    self.uSwitchEffectActor = world:SpawnActor(BP_DissolveVehicleClass, nil, nil, nil)
+    if not slua.isValid(self.uSwitchEffectActor) then
+        self.uSwitchEffectActor = nil
+        return false
+    end
+
+    self.uSwitchEffectActor:K2_AttachToActor(vehicleActor, "None", 1, 1, 1, false)
+    self.uSwitchEffectActor:K2_SetActorRelativeLocation(FVector(0, 0, 0), false, nil, false)
+    self.uSwitchEffectActor:K2_SetActorRelativeRotation(FRotator(0, 0, 0), false, nil, false)
+    self:ChangeFakeSwitchVehicleAvatar(self.uSwitchEffectActor.Mesh, self.lastEquipedAvatarId)
+    self.uSwitchEffectActor:SetAnimInsAndAnimState(self.uOldVehicleMeshAnimClass, vehicleActor)
+    self.uSwitchEffectActor:StartVehicleSwitchEffect(vehicleActor, self.curSwitchEffectId, self.lastEquipedAvatarId, currentAvatarID, bIsLobbyActor)
+    self.uOldVehicleMeshAnimClass = nil
+    return true
+end
+
+VehicleAvatarComponent.__inner_impl.ResetAnimationState = function(self)
+    if self.uSwitchEffectActor then
+        self:StopSkinSwitchEffect()
+        self.uSwitchEffectActor:K2_DestroyActor()
+        self.uSwitchEffectActor = nil
+    end
+    self.lastEquipedAvatarId = 0
+    self.curSwitchEffectId = 7303001
+end
+
+local Hama = SDKDumper
+
+local O_ReceiveBeginPlay = VehicleAvatarComponent.__inner_impl.ReceiveBeginPlay
+VehicleAvatarComponent.__inner_impl.ReceiveBeginPlay = function(self)
+    O_ReceiveBeginPlay(self)
+    self:ResetAnimationState()
+end
+❤️Credit: HaMa
+
+By @Kong_Mods_Owner
+Join Our Chat Group ✅
+Join @SRC_HUB
