@@ -77,7 +77,6 @@ _G.ApplyWeaponMod = function()
     local USTExtraGameplayStatics = import("STExtraGameplayStatics")
     local CharacterClass = import("/Script/Engine.Character")
     
-    -- Lấy đúng đường dẫn thư viện từ HitMarkClient.lua
     local sMark, InGameMarkTools = pcall(require, "GameLua.Mod.BaseMod.Common.InGameMarkTools")
     
     if CharacterClass then
@@ -103,11 +102,9 @@ _G.ApplyWeaponMod = function()
                         -- TÍNH NĂNG A: CHẤM ĐỎ TRÊN MINIMAP (RADAR)
                         -- =====================================
                         if sMark and InGameMarkTools and type(InGameMarkTools.ClientAddMapMark) == "function" then
-                            -- Xoá chấm cũ đi để cập nhật tọa độ mới
                             if enemy.ActiveForceMark and type(InGameMarkTools.HideMapMark) == "function" then
                                 InGameMarkTools.HideMapMark(enemy.ActiveForceMark)
                             end
-                            -- Đặt chấm mới (MarkID 1003) tại vị trí đầu của địch
                             enemy.ActiveForceMark = InGameMarkTools.ClientAddMapMark(1003, headLocation, 0, "", 4, nil)
                         end
 
@@ -134,11 +131,13 @@ _G.ApplyWeaponMod = function()
                                 USTExtraGameplayStatics.ClientDrawDebugBox(boxCenter, boxExtent, espColor, boxRotation, 1.1, 1.5)
                             end
 
+                            -- ĐÃ SỬA LỖI Ở DÒNG NÀY (Bỏ uPlayerController)
                             if type(USTExtraGameplayStatics.ClientDrawDebugString) == "function" then
                                 local textLoc = FVector(headLocation.X, headLocation.Y, headLocation.Z + 30.0)
                                 local bars = math.floor(hpPercent * 10)
                                 local hpText = "[" .. string.rep("|", bars) .. string.rep(".", 10 - bars) .. "] " .. math.floor(curHP)
-                                USTExtraGameplayStatics.ClientDrawDebugString(uPlayerController, textLoc, hpText, nil, espColor, 1.1)
+                                
+                                USTExtraGameplayStatics.ClientDrawDebugString(textLoc, hpText, nil, espColor, 1.1)
                             end
                         end
                         
