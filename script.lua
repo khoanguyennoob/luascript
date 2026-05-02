@@ -82,6 +82,7 @@ local function LexusMainLoop()
         -- 2. MOD XE
         if uPlayerCharacter.GetCurrentVehicle then
             local CurrentVehicle = uPlayerCharacter:GetCurrentVehicle()
+            LexusNotify("Đang kiểm tra xe...")
             if slua.isValid(CurrentVehicle) then
                 local VehicleCommon = CurrentVehicle:GetCommonComponent()
                 if slua.isValid(VehicleCommon) then
