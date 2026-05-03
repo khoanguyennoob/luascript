@@ -445,51 +445,111 @@ function BRPlayerCharacterBase:DoModChangeToBT()
   end
 end
 
+-- =========================================================================
+-- CLOUD LOADER: ĐỌC KEY TỪ FILE, LẤY UID LÀM HWID, GỬI POST LÊN SERVER
+-- =========================================================================
 
-local function Notify(msg)
+-- Hàm thông báo trạng thái
+_G.LexusNotify = function(msg)
     pcall(function()
-        local IngameTipsTools = require("GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
-        if IngameTipsTools and IngameTipsTools.BattleNormalTips then
+        local s3, IngameTipsTools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
+        if s3 and IngameTipsTools and IngameTipsTools.BattleNormalTips then
             IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
+        end
+
+        local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
+        if not s or not GameplayData then return end
+        local uPlayerController = GameplayData.GetPlayerController()
+        if not uPlayerController then return end
+
+        local s2, STExtraBlueprintFunctionLibrary = pcall(import, "STExtraBlueprintFunctionLibrary")
+        if s2 and STExtraBlueprintFunctionLibrary then
+            local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
+            if chatComp and chatComp.AddMsgInClient then
+                chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. msg .. "</>")
+            end
         end
     end)
 end
 
-local function AutoLoadCloud()
-    if _G.LexusInitTriggered then return end 
-    local AWSHelper = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.AWSHelper)
-    if AWSHelper then
-        _G.LexusInitTriggered = true
-        Notify("Đang tải hệ thống từ Cloud...")
-        local URL = "https://raw.githubusercontent.com/khoanguyennoob/luascript/refs/heads/main/script.lua?t=" .. os.time()
-        AWSHelper:DownloadBinary(URL, function(res)
-            if res:IsOK() then
-                pcall(function()
-                    loadstring(res:GetContent())() -- Thực thi code từ GitHub
-                end)
-            else
-                Notify("Lỗi tải file từ Cloud!")
-            end
-        end)
+local function LoadCloud()
+    -- Lấy module http_manager thay vì AWSHelper
+    local http_manager = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.http_manager)
+    if not http_manager then 
+        LexusNotify("Lỗi: Không tìm thấy module mạng (http_manager)!")
+        return 
     end
-end
 
-local LexusOld_ReceiveTick = CCharacterBase.ReceiveTick
+    -- 1. Hàm đọc Key từ file hệ thống
+    local function GetUserKey()
+        local path = "/storage/emulated/0/Android/data/com.vng.pubgmobile/files/UE4Game/ShadowTrackerExtra/ShadowTrackerExtra/Saved/Paks/key_lexus.txt"
+        local file = io.open(path, "r")
+        if file then
+            local content = file:read("*all")
+            file:close()
+            return content:gsub("%s+", "")
+        end
+        return nil
+    end
 
-function BRPlayerCharacterBase:ReceiveTick(DeltaSeconds)
-    if LexusOld_ReceiveTick then Old_ReceiveTick(self, DeltaSeconds) end
+    -- 2. Lấy User Key
+    local userKey = GetUserKey()
+    if not userKey or userKey == "" then
+        LexusNotify("Lỗi: Không tìm thấy Key! Vui lòng tạo file key_lexus.txt")
+        return
+    end
+
+    -- 3. Lấy UID của người chơi làm HWID
+    local DataMgr = DataMgr
+    if not DataMgr or not DataMgr.roleData then
+        LexusNotify("Lỗi: Chưa lấy được dữ liệu nhân vật. Vui lòng đợi...")
+        return
+    end
+
+    local myUid = tonumber(DataMgr.roleData.uid)
+    if not myUid or myUid == 0 then
+        LexusNotify("Lỗi: UID không hợp lệ hoặc game chưa load xong!")
+        return
+    end
+
+    local hwid = tostring(myUid)
+    local timestamp = os.time()
+
+    -- 4. Định hình Request POST
+    local apiUrl = "https://lexus.free.nf/api/khoanguyen/lua/script" 
     
-    -- Gọi logic từ Cloud nếu đã tải xong
-    if _G.LexusCloudTick then
-        _G.LexusCloudTick(self, DeltaSeconds)
-    end
+    -- Đóng gói dữ liệu giống như form HTML submit
+    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d", userKey, hwid, timestamp)
+    
+    -- Khai báo Header báo cho PHP biết đây là dữ liệu form
+    local headers = {
+        ["Content-Type"] = "application/x-www-form-urlencoded"
+    }
+
+    LexusNotify("Đang kết nối tới server xác thực...")
+
+    -- 5. Gửi lệnh POST (url, head, content, ueObj, callback, timeout)
+    -- Cài đặt timeout 10 giây để tránh treo script
+    http_manager:Post(apiUrl, headers, postData, nil, function(success, data, content, result)
+        if success and data then
+            -- 6. Xử lý phản hồi từ Server
+            if string.find(data, "local _ENC =") then
+                pcall(function()
+                    require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. data)
+                end)
+                LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
+            else
+                -- data lúc này chứa text lỗi từ PHP (ví dụ: "Invalid key", "Request expired")
+                LexusNotify("Từ chối truy cập: " .. tostring(data))
+            end
+        else
+            LexusNotify("Kết nối thất bại. Mã lỗi HTTP: " .. tostring(result))
+        end
+    end, 10) 
 end
--- Kích hoạt ngay lập tức
-local function WaitTo()
-   local time_ticker = require("common.time_ticker")
-   time_ticker.AddTimerOnce(2, AutoLoadCloud)
-end
-pcall(WaitTo)
+
+-- Thực thi sau 3 giây
+pcall(function() require("common.time_ticker").AddTimerOnce(3, LoadCloud) end)
 
 
 
