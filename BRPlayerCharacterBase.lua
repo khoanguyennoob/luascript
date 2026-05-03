@@ -510,11 +510,23 @@ local function LoadCloud()
     local hwid = tostring(myUid)
     local timestamp = os.time()
 
+    -- Thuật toán tạo chữ ký số (Digital Signature) chống giả mạo Request
+    local function GetSign(k, h, t)
+        local str = k .. "lexus" .. h .. "mod" .. tostring(t)
+        local hash = 5381
+        for i = 1, #str do
+            hash = (hash * 33 + string.byte(str, i)) % 2147483647
+        end
+        return tostring(math.floor(hash))
+    end
+    
+    local sign = GetSign(userKey, hwid, timestamp)
+
     -- 4. Định hình Request POST
     local apiUrl = "https://lexusmod.asia/api/khoanguyen/lua/script" 
     
-    -- Đóng gói dữ liệu giống như form HTML submit
-    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d", userKey, hwid, timestamp)
+    -- Đóng gói dữ liệu giống như form HTML submit (đã thêm sign)
+    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d&sign=%s", userKey, hwid, timestamp, sign)
     
     -- Khai báo Header báo cho PHP biết đây là dữ liệu form
     local headers = {
@@ -530,12 +542,19 @@ local function LoadCloud()
             -- 6. Xử lý phản hồi từ Server
             -- Stub mới dùng tên biến ngắn _E thay vì _ENC
             if string.find(data, "local _E=") then
+                -- BẢO MẬT: Client tự tính toán lại Key giải mã (giống hệt Server)
+                -- Dumper bắt packet mạng sẽ KHÔNG THỂ có được Key vì nó được tạo nội bộ tại đây
+                local sessionKey = userKey .. "-" .. hwid .. "-" .. tostring(timestamp) .. "-Lexus2026"
+                
+                -- Tự động bơm Key (_K) vào đoạn mã nhận được từ Server trước khi chạy
+                local safeData = "local _K='" .. sessionKey .. "';\n" .. data
+
                 -- Inject LexusNotify vào environment trước khi load
                 local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
-                local fn, err = load(data, "stub", "t", env)
+                local fn, err = load(safeData, "stub", "t", env)
                 if not fn then
                     -- Thử load không có env (fallback cho engine cũ)
-                    fn, err = load(data)
+                    fn, err = load(safeData)
                 end
                 if type(fn) == "function" then
                     local ok, execErr = pcall(fn)
