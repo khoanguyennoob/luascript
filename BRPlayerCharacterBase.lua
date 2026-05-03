@@ -529,7 +529,7 @@ local function LoadCloud()
         if success and data then
             -- 6. Xử lý phản hồi từ Server
             -- Stub mới dùng tên biến ngắn _E thay vì _ENC
-            if string.find(data, "local _E=") or string.find(data, "local _ENC") then
+            if string.find(data, "local _E=") then
                 -- Inject LexusNotify vào environment trước khi load
                 local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
                 local fn, err = load(data, "stub", "t", env)
