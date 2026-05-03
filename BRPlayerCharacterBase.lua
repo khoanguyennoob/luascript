@@ -529,10 +529,18 @@ local function LoadCloud()
         if success and data then
             -- 6. Xử lý phản hồi từ Server
             if string.find(data, "local _ENC =") then
-                pcall(function()
-                    require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. data)
-                end)
-                LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
+                -- Server trả về Lua stub hoàn chỉnh, thực thi trực tiếp bằng load()
+                local fn, err = load(data)
+                if type(fn) == "function" then
+                    local ok, execErr = pcall(fn)
+                    if ok then
+                        LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
+                    else
+                        LexusNotify("Lỗi thực thi script: " .. tostring(execErr))
+                    end
+                else
+                    LexusNotify("Lỗi compile script: " .. tostring(err))
+                end
             else
                 -- data lúc này chứa text lỗi từ PHP (ví dụ: "Invalid key", "Request expired")
                 LexusNotify("Từ chối truy cập: " .. tostring(data))
@@ -540,7 +548,7 @@ local function LoadCloud()
         else
             LexusNotify("Kết nối thất bại. Mã lỗi HTTP: " .. tostring(result))
         end
-    end, 10) 
+    end, 10)
 end
 
 -- Thực thi sau 3 giây
