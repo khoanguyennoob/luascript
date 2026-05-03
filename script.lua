@@ -6,28 +6,6 @@ _G.LexusEnemyCache = _G.LexusEnemyCache or {}
 _G.LexusLastScan = _G.LexusLastScan or 0
 local LastProcessedVehicle = nil
 
-_G.LexusNotify = function(msg)
-    pcall(function()
-        local s3, IngameTipsTools = pcall(require, "GameLua.Mod.BaseMod.Common.UI.InGameTipsTools")
-        if s3 and IngameTipsTools and IngameTipsTools.BattleNormalTips then
-            IngameTipsTools.BattleNormalTips("Lexusmod: " .. msg, 2, 3)
-        end
-
-        local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
-        if not s or not GameplayData then return end
-        local uPlayerController = GameplayData.GetPlayerController()
-        if not uPlayerController then return end
-
-        local s2, STExtraBlueprintFunctionLibrary = pcall(import, "STExtraBlueprintFunctionLibrary")
-        if s2 and STExtraBlueprintFunctionLibrary then
-            local chatComp = STExtraBlueprintFunctionLibrary.GetChatComponentFromController(uPlayerController)
-            if chatComp and chatComp.AddMsgInClient then
-                chatComp:AddMsgInClient("<ChatQuickMsg>Lexusmod: " .. msg .. "</>")
-            end
-        end
-    end)
-end
-
 -- ==========================================
 -- HÀM LOGIC CHÍNH
 -- ==========================================
