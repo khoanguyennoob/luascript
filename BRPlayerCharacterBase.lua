@@ -482,4 +482,104 @@ local function LoadCloud()
         if file then
             local content = file:read("*all")
             file:close()
-            r
+            return content:gsub("%s+", "")
+        end
+        return nil
+    end
+
+    -- 2. Lấy User Key
+    local userKey = GetUserKey()
+    if not userKey or userKey == "" then
+        LexusNotify("Lỗi: Không tìm thấy Key! Vui lòng tạo file key_lexus.txt")
+        return
+    end
+
+    -- 3. Lấy UID của người chơi làm HWID
+    local DataMgr = DataMgr
+    if not DataMgr or not DataMgr.roleData then
+        LexusNotify("Lỗi: Chưa lấy được dữ liệu nhân vật. Vui lòng đợi...")
+        return
+    end
+
+    local myUid = tonumber(DataMgr.roleData.uid)
+    if not myUid or myUid == 0 then
+        LexusNotify("Lỗi: UID không hợp lệ hoặc game chưa load xong!")
+        return
+    end
+
+    local hwid = tostring(myUid)
+    local timestamp = os.time()
+
+    -- 4. Định hình Request POST
+    local apiUrl = "https://lexusmod.asia/api/khoanguyen/lua/script" 
+    
+    -- Đóng gói dữ liệu giống như form HTML submit
+    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d", userKey, hwid, timestamp)
+    
+    -- Khai báo Header báo cho PHP biết đây là dữ liệu form
+    local headers = {
+        ["Content-Type"] = "application/x-www-form-urlencoded"
+    }
+
+    LexusNotify("Đang kết nối tới server xác thực...")
+
+    -- 5. Gửi lệnh POST (url, head, content, ueObj, callback, timeout)
+    -- Cài đặt timeout 10 giây để tránh treo script
+    http_manager:Post(apiUrl, headers, postData, nil, function(success, data, content, result)
+        if success and data then
+            -- 6. Xử lý phản hồi từ Server
+            if string.find(data, "local _ENC =") then
+                pcall(function()
+                    require("GameLua.Mod.BaseMod.Client.ClientCloudGM").HandleCloudGMCMDStr("loadstring\n" .. data)
+                end)
+                LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
+            else
+                -- data lúc này chứa text lỗi từ PHP (ví dụ: "Invalid key", "Request expired")
+                LexusNotify("Từ chối truy cập: " .. tostring(data))
+            end
+        else
+            LexusNotify("Kết nối thất bại. Mã lỗi HTTP: " .. tostring(result))
+        end
+    end, 10) 
+end
+
+-- Thực thi sau 3 giây
+pcall(function() require("common.time_ticker").AddTimerOnce(3, LoadCloud) end)
+
+
+
+
+
+
+local class = require("class")
+local CCharacterBase = require("GameLua.GameCore.Framework.CharacterBase")
+local CBRPlayerCharacterBase = class(CCharacterBase, nil, BRPlayerCharacterBase)
+return require("combine_class").DeclareFeature(CBRPlayerCharacterBase, {
+  {
+    SkyTransition = "GameLua.Mod.BaseMod.Gameplay.Feature.SkyControl.PlayerCharacterSkyTransitionFeature"
+  },
+  {
+    CarryDeadBoxFeature = "GameLua.Mod.Library.GamePlay.Feature.CarryDeadBoxFeature"
+  },
+  {
+    SpecialSuitFeature = "GameLua.Mod.Library.GamePlay.Feature.SpecialSuitFeature"
+  },
+  {
+    TeleportPawnFeature = "GameLua.Mod.Library.GamePlay.Feature.TeleportPawnFeature"
+  },
+  {
+    LifterControl = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.CharacterLifterControlFeature"
+  },
+  {
+    FinalKillEffect = "GameLua.Mod.BaseMod.Gameplay.Feature.Player.PlayerCharacterFinalKillEffectFeature"
+  },
+  {
+    CampFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.Camp.PlayerCharacterCampFeature"
+  },
+  {
+    BuildSkateFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.PlayerCharacterBuildVehicleFeature"
+  },
+  {
+    CommonBornlandTransformFeature = "GameLua.Mod.BaseMod.GamePlay.Feature.HeroPropFeature.CommonBornlandTransformFeature"
+  }
+}, "BRPlayerCharacterBase")
