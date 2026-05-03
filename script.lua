@@ -2,6 +2,7 @@
 -- KHỞI TẠO BIẾN TOÀN CỤC & BỘ NHỚ ĐỆM
 -- ==========================================
 
+
 _G.LexusEnemyCache = _G.LexusEnemyCache or {}
 _G.LexusLastScan = _G.LexusLastScan or 0
 local LastProcessedVehicle = nil
@@ -9,6 +10,8 @@ local LastProcessedVehicle = nil
 -- ==========================================
 -- HÀM LOGIC CHÍNH
 -- ==========================================
+LexusNotify("Đã load")
+
 
 local function LexusMainLoop()
     local s, GameplayData = pcall(require, "GameLua.GameCore.Data.GameplayData")
