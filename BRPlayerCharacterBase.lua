@@ -528,9 +528,15 @@ local function LoadCloud()
     http_manager:Post(apiUrl, headers, postData, nil, function(success, data, content, result)
         if success and data then
             -- 6. Xử lý phản hồi từ Server
-            if string.find(data, "local _ENC =") then
-                -- Server trả về Lua stub hoàn chỉnh, thực thi trực tiếp bằng load()
-                local fn, err = load(data)
+            -- Stub mới dùng tên biến ngắn _E thay vì _ENC
+            if string.find(data, "local _E=") or string.find(data, "local _ENC") then
+                -- Inject LexusNotify vào environment trước khi load
+                local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
+                local fn, err = load(data, "stub", "t", env)
+                if not fn then
+                    -- Thử load không có env (fallback cho engine cũ)
+                    fn, err = load(data)
+                end
                 if type(fn) == "function" then
                     local ok, execErr = pcall(fn)
                     if ok then
