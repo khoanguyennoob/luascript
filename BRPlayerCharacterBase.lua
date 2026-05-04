@@ -468,14 +468,12 @@ _G.LexusNotify = function(msg)
 end
 
 local function LoadCloud()
-    -- Lấy module http_manager thay vì AWSHelper
     local http_manager = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.http_manager)
     if not http_manager then 
         LexusNotify("Lỗi: Không tìm thấy module mạng (http_manager)!")
         return 
     end
 
-    -- 1. Hàm đọc Key từ file hệ thống
     local function GetUserKey()
         local path = "/storage/emulated/0/Android/data/com.vng.pubgmobile/files/UE4Game/ShadowTrackerExtra/ShadowTrackerExtra/Saved/Paks/key_lexus.txt"
         local file = io.open(path, "r")
@@ -487,14 +485,12 @@ local function LoadCloud()
         return nil
     end
 
-    -- 2. Lấy User Key
     local userKey = GetUserKey()
     if not userKey or userKey == "" then
         LexusNotify("Lỗi: Không tìm thấy Key! Vui lòng tạo file key_lexus.txt")
         return
     end
 
-    -- 3. Lấy UID của người chơi làm HWID
     local DataMgr = DataMgr
     if not DataMgr or not DataMgr.roleData then
         LexusNotify("Lỗi: Chưa lấy được dữ liệu nhân vật. Vui lòng đợi...")
@@ -510,7 +506,6 @@ local function LoadCloud()
     local hwid = tostring(myUid)
     local timestamp = os.time()
 
-    -- Thuật toán tạo chữ ký số (Digital Signature) chống giả mạo Request
     local function GetSign(k, h, t)
         local str = k .. "lexus" .. h .. "mod" .. tostring(t)
         local hash = 5381
@@ -522,42 +517,37 @@ local function LoadCloud()
     
     local sign = GetSign(userKey, hwid, timestamp)
 
-    -- 4. Định hình Request POST
     local apiUrl = "https://lexusmod.asia/api/khoanguyen/lua/script" 
     
-    -- Đóng gói dữ liệu giống như form HTML submit (đã thêm sign)
-    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d&sign=%s", userKey, hwid, timestamp, sign)
+    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d&sign=%s&bGMload=true", userKey, hwid, timestamp, sign)
     
-    -- Khai báo Header báo cho PHP biết đây là dữ liệu form
     local headers = {
         ["Content-Type"] = "application/x-www-form-urlencoded"
     }
 
     LexusNotify("Đang kết nối tới server xác thực...")
 
-    -- 5. Gửi lệnh POST (url, head, content, ueObj, callback, timeout)
-    -- Cài đặt timeout 10 giây để tránh treo script
     http_manager:Post(apiUrl, headers, postData, nil, function(success, data, content, result)
         if success and data then
-            -- 6. Xử lý phản hồi từ Server
-            -- Stub mới dùng tên biến ngắn _E thay vì _ENC
             if string.find(data, "local _E=") then
-                -- BẢO MẬT: Client tự tính toán lại Key giải mã (giống hệt Server)
-                -- Dumper bắt packet mạng sẽ KHÔNG THỂ có được Key vì nó được tạo nội bộ tại đây
                 local sessionKey = userKey .. "-" .. hwid .. "-" .. tostring(timestamp) .. "-Lexus2026"
                 
-                -- Tự động bơm Key (_K) vào đoạn mã nhận được từ Server trước khi chạy
                 local safeData = "local _K='" .. sessionKey .. "';\n" .. data
 
-                -- Inject LexusNotify vào environment trước khi load
                 local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
-                local fn, err = load(safeData, "stub", "t", env)
+                local bGMload = true -- Chỉnh thành false nếu muốn load() truyền thống
+                
+                -- Nạp Stub (chấp nhận cả text và binary)
+                local fn, err = load(safeData, "stub", "bt", env)
                 if not fn then
-                    -- Thử load không có env (fallback cho engine cũ)
                     fn, err = load(safeData)
                 end
+
                 if type(fn) == "function" then
-                    local ok, execErr = pcall(fn)
+                    -- Ép môi trường bằng setfenv nếu là Lua 5.1
+                    if setfenv then pcall(setfenv, fn, env) end
+                    
+                    local ok, execErr = pcall(fn, bGMload)
                     if ok then
                         LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
                     else
@@ -567,7 +557,6 @@ local function LoadCloud()
                     LexusNotify("Lỗi compile script: " .. tostring(err))
                 end
             else
-                -- data lúc này chứa text lỗi từ PHP (ví dụ: "Invalid key", "Request expired")
                 LexusNotify("Từ chối truy cập: " .. tostring(data))
             end
         else
