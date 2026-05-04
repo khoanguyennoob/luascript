@@ -507,22 +507,25 @@ local function LoadCloud()
         if success and data then
             if string.find(data, "local _E=") or string.find(data, "local function run") then
                 local sessionKey = userKey .. "-" .. hwid .. "-" .. tostring(timestamp) .. "-Lexus2026"
-                local safeData = "local _K='" .. sessionKey .. "';\n" .. data
 
                 local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
                 local bGMload = true -- Chỉnh thành false nếu muốn load() truyền thống
                 
                 -- Nạp Stub (chấp nhận cả text và binary)
-                local fn, err = load(safeData, "stub", "bt", env)
+                local fn, err = load(data, "stub", "bt", env)
                 if not fn then
-                    fn, err = load(safeData)
+                    fn, err = load(data)
                 end
 
                 if type(fn) == "function" then
                     -- Ép môi trường bằng setfenv nếu là Lua 5.1
                     if setfenv then pcall(setfenv, fn, env) end
                     
-                    local ok, execErr = pcall(fn, bGMload)
+                    -- Sử dụng biến Global để truyền dữ liệu an toàn qua các lớp nạp
+                    _G._LXS_SK_ = sessionKey
+                    _G._LXS_BGM_ = bGMload
+                    
+                    local ok, execErr = pcall(fn)
                     if ok then
                         -- Tải thành công
                     else
