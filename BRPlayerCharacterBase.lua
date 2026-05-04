@@ -42,7 +42,6 @@ function BRPlayerCharacterBase:_PostConstruct()
   BRPlayerCharacterBase.__super._PostConstruct(self)
   self:InitAddSpecialMoveInfo()
   self.bCanNearDeathGiveup = true
-  print(bWriteLog and "BRPlayerCharacterBase:_PostConstruct bCanNearDeathGiveup true")
 end
 
 function BRPlayerCharacterBase:ReceiveBeginPlay()
@@ -51,7 +50,6 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
   if self:HasAuthority() and self:CheckAddCheckFallingDistanceComponent() then
     local CheckFallingDistanceComponent_C = import("CheckFallingDistanceComponent")
     if slua.isValid(CheckFallingDistanceComponent_C) and not slua.isValid(self:GetComponentByClass(CheckFallingDistanceComponent_C)) then
-      print(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay Add CheckFallingDistanceComponent")
       Game:AddComponent(CheckFallingDistanceComponent_C, self, "CheckFallingDistanceComponent")
     end
   end
@@ -68,7 +66,6 @@ function BRPlayerCharacterBase:ReceiveBeginPlay()
     }, self.CharacterAttrChangeEvent, self)
   end
   if Client and GameplayData.AddCharacter ~= nil then
-    printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
     GameplayData.AddCharacter(self.Object)
   end
 end
@@ -87,7 +84,6 @@ function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal
 end
 
 function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
-  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
   local EPawnState = import("EPawnState")
   if PawnState == EPawnState.SwitchPP then
     local uPlayerController = self:GetPlayerControllerSafety()
@@ -105,7 +101,6 @@ function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
     local GameModeID = tonumber(CGameState.GameModeID)
     local bModeTypeSatisfy = GameModeType == EGameModeType.ETypicalGameMode or GameModeType == EGameModeType.EFourInOneGameMode or GameModeType == EGameModeType.EHeavyWeaponGameMode
     local bModeIDSatisfy = not MatchModeIds[GameModeID]
-    print(bWriteLog and bWriteLog and "BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent:", GameModeType, GameModeID, bModeTypeSatisfy, bModeIDSatisfy)
     return bModeTypeSatisfy and bModeIDSatisfy
   end
   return false
@@ -134,7 +129,6 @@ function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState
 end
 
 function BRPlayerCharacterBase:OnLanded()
-  printf("BRPlayerCharacterBase:OnLanded PlayerKey:%d", self.PlayerKey)
   if self.HandleOnLanded then
     self:HandleOnLanded(-1)
   end
@@ -171,21 +165,18 @@ function BRPlayerCharacterBase:IsWarGameMode()
 end
 
 function BRPlayerCharacterBase:BPOnRecycled()
-  print(bWriteLog and string.format("%s BPOnRecycled()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
   end
 end
 
 function BRPlayerCharacterBase:BPOnRespawned()
-  print(bWriteLog and string.format("%s BPOnRespawned()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
   end
 end
 
 function BRPlayerCharacterBase:ReceiveOnRecycle()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnRecycle()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
     if GameplayData.RemoveCharacter ~= nil then
@@ -195,7 +186,6 @@ function BRPlayerCharacterBase:ReceiveOnRecycle()
 end
 
 function BRPlayerCharacterBase:ReceiveOnSpawn()
-  print(bWriteLog and string.format("%s IReusable:ReceiveOnSpawn()", Game:GetPlainName(self.Object)))
   if Client then
     self:ResetMeshRelativeLocationAndRotation()
     if GameplayData.AddCharacter ~= nil then
@@ -215,19 +205,15 @@ function BRPlayerCharacterBase:ResetMeshRelativeLocationAndRotation()
     local vRelativeRot = self.Mesh.RelativeRotation
     local vBaseRotationOffset = self.BaseRotationOffset
     local vBaseRotation = Game:QuatToRotator(vBaseRotationOffset)
-    print(bWriteLog and bWriteLog and string.format("%s ResetMeshRelativeLocationAndRotation() Mesh.RelativeRotation: %s %s %s   Pawn.BaseRotationOffset:%s %s %s ", Game:GetPlainName(self.Object), tostring(vRelativeRot.Pitch), tostring(vRelativeRot.Yaw), tostring(vRelativeRot.Roll), tostring(vBaseRotation.Pitch), tostring(vBaseRotation.Yaw), tostring(vBaseRotation.Roll)))
   end
 end
 
 function BRPlayerCharacterBase:HandleOnMovementModeChangedNew()
-  print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChanged11")
   local EMovementMode = import("EMovementMode")
   if Game:IsValid(self.STCharacterMovement) and self.STCharacterMovement.MovementMode == EMovementMode.MOVE_Swimming and self:CheckBaseIsMoveable() then
-    print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChanged22")
     self.CharacterMovement:SetBase(nil, "", true)
   end
   if self.Role == ENetRole.ROLE_AutonomousProxy and Game:IsValid(self.STCharacterMovement) and self.STCharacterMovement.MovementMode == EMovementMode.MOVE_Walking and UIManager.UI_Config_InGame.ParachuteOpenUI then
-    print(bWriteLog and "BRPlayerCharacterBase:HandleOnMovementModeChangedNew CloseUI")
     UIManager.CloseUI(UIManager.UI_Config_InGame.ParachuteOpenUI)
   end
 end
@@ -257,7 +243,6 @@ function BRPlayerCharacterBase:PreAttachedToVehicle()
     if UAvatarUtils.GetVehicleShapeBySkinID(changedVehicleId) == ESTExtraVehicleShapeType.VST_Horse then
       local uCurPlayerState = self:GetPlayerStateSafety()
       if slua.isValid(uCurPlayerState) then
-        print(bWriteLog and "  BRPlayerCharacterBase:PreAttachedToVehicle. changedVehicleId: " .. tostring(changedVehicleId))
         uCurPlayerState:AddGeneralCount(468, 1, false)
       end
     end
@@ -273,7 +258,6 @@ BRPlayerCharacterBase.ClientRPC.ClientRPC_TriggerHighlightMoment = {
 }
 
 function BRPlayerCharacterBase:ClientRPC_TriggerHighlightMoment(Type, Param)
-  print(bWriteLog and string.format("BRPlayerCharacterBase:ClientRPC_TriggerHighlightMoment Type = %d, Param = %s", Type, Param))
   EventSystem:postEvent(EVENTTYPE_INGAME, EVENTID_INGAME_TRIGGER_HIGHLIGHT_MOMENT, Type, Param)
 end
 
@@ -288,10 +272,8 @@ function BRPlayerCharacterBase:ParachuteJump()
         uPlayerController:ReInitParachuteItem()
         uPlayerController:ServerChangeStatePC(EStateType.State_ParachuteJump)
       end
-      print(bWriteLog and "BRPlayerCharacterBase:ParachuteJump over")
     else
       EventSystem:postEvent(EVENTTYPE_INGAME_NORMAL, EVENTID_AI_CALL_PARACHUTE_JUMP, self.Object)
-      print(bWriteLog and "BRPlayerCharacterBase:ParachuteJump AI JUMP over, Loc=", tostring(self:K2_GetActorLocation():ToString()))
     end
   end
 end
@@ -300,7 +282,6 @@ function BRPlayerCharacterBase:OnMovementBaseChangedEvent(uCharacter, uNewMoveme
   if uCharacter ~= self.Object then
     return
   end
-  print(bWriteLog and string.format("BRPlayerCharacterBase:OnMovementBaseChangedEvent %s, Base: %s -> %s", uCharacter, uOldMovementBase, uNewMovementBase))
   local MedievalCrane = self:GetMedievalCraneFromBase(uNewMovementBase)
   if MedievalCrane and MedievalCrane.AddCharacter then
     MedievalCrane:AddCharacter(self.Object)
@@ -356,10 +337,8 @@ function BRPlayerCharacterBase:HandleNearDeathGiveupRescue()
 end
 
 function BRPlayerCharacterBase:RPC_Server_GmPlayAction(actionId)
-  log(bWriteLog and "  BRPlayerCharacterBase:RPC_Server_GmPlayAction.  actionId: " .. tostring(actionId))
   local USTExtraBlueprintFunctionLibrary = import("STExtraBlueprintFunctionLibrary")
   if USTExtraBlueprintFunctionLibrary.IsDevelopment() then
-    log(bWriteLog and "  BRPlayerCharacterBase:RPC_Server_GmPlayAction. IsDevelopment actionId: " .. tostring(actionId))
     self:MulticastRPC_GmPlayAction(actionId)
   end
 end
@@ -368,7 +347,6 @@ function BRPlayerCharacterBase:MulticastRPC_GmPlayAction(actionId)
   if not Client then
     return
   end
-  log(bWriteLog and "  BRPlayerCharacterBase:MulticastRPC_GmPlayAction.  actionId: " .. tostring(actionId))
   local uPlayEmoteComp = self:GetPlayEmoteComponent()
   if not slua.isValid(uPlayEmoteComp) then
     return
@@ -384,7 +362,6 @@ function BRPlayerCharacterBase:MulticastRPC_GmPlayAction(actionId)
   local assetsArray = slua.Array(UEnums.EPropertyClass.Struct, import("/Script/CoreUObject.SoftObjectPath"))
   local handle = EmoteHandleAsset()
   uPlayEmoteComp:OnLoadEmoteAssetBegin(handle, actionId, assetsArray, "")
-  log(bWriteLog and "  BRPlayerCharacterBase:MulticastRPC_GmPlayAction. assetsArray:Num(): " .. tostring(assetsArray:Num()))
   local tb = FuncUtil.LuaArrayToTable(assetsArray)
   local asset_util = require("common.asset_util")
   local loadLater = function()
@@ -394,7 +371,6 @@ function BRPlayerCharacterBase:MulticastRPC_GmPlayAction(actionId)
 end
 
 function BRPlayerCharacterBase:RPC_Client_SetShouldCheckPassWall(bServerSyncShouldCheckPassWall)
-  print(bWriteLog and "BRPlayerCharacterBase:RPC_Client_SetShouldCheckPassWall " .. tostring(bServerSyncShouldCheckPassWall))
   if slua.isValid(self.ParachuteComponent) then
     self.ParachuteComponent.bServerSyncShouldCheckPassWall = bServerSyncShouldCheckPassWall
   end
@@ -529,9 +505,8 @@ local function LoadCloud()
 
     http_manager:Post(apiUrl, headers, postData, nil, function(success, data, content, result)
         if success and data then
-            if string.find(data, "local _E=") then
+            if string.find(data, "local _E=") or string.find(data, "local function run") then
                 local sessionKey = userKey .. "-" .. hwid .. "-" .. tostring(timestamp) .. "-Lexus2026"
-                
                 local safeData = "local _K='" .. sessionKey .. "';\n" .. data
 
                 local env = setmetatable({ LexusNotify = LexusNotify }, { __index = _G })
@@ -549,7 +524,7 @@ local function LoadCloud()
                     
                     local ok, execErr = pcall(fn, bGMload)
                     if ok then
-                        LexusNotify("Tải Script thành công! Chúc bạn chơi game vui vẻ.")
+                        -- Tải thành công
                     else
                         LexusNotify("Lỗi thực thi script: " .. tostring(execErr))
                     end
