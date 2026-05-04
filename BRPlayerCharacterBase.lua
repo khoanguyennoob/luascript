@@ -444,6 +444,8 @@ _G.LexusNotify = function(msg)
 end
 
 local function LoadCloud()
+    if _G._Authenticated_ then return end
+
     local http_manager = ModuleManager.GetModule(ModuleManager.CommonModuleConfig.http_manager)
     if not http_manager then 
         LexusNotify("Lỗi: Không tìm thấy module mạng (http_manager)!")
@@ -482,8 +484,8 @@ local function LoadCloud()
     local hwid = tostring(myUid)
     local timestamp = os.time()
 
-    local function GetSign(k, h, t)
-        local str = k .. "lexus" .. h .. "mod" .. tostring(t)
+    local function GetSign(k, h, t, n)
+        local str = k .. "lexus" .. h .. "mod" .. tostring(t) .. tostring(n)
         local hash = 5381
         for i = 1, #str do
             hash = (hash * 33 + string.byte(str, i)) % 2147483647
@@ -491,11 +493,13 @@ local function LoadCloud()
         return tostring(math.floor(hash))
     end
     
-    local sign = GetSign(userKey, hwid, timestamp)
+    math.randomseed(os.time())
+    local nonce = math.random(100000, 999999)
+    local sign = GetSign(userKey, hwid, timestamp, nonce)
 
     local apiUrl = "https://lexusmod.asia/api/khoanguyen/lua/script" 
     
-    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d&sign=%s&bGMload=true", userKey, hwid, timestamp, sign)
+    local postData = string.format("user_key=%s&hwid=%s&timestamp=%d&nonce=%d&sign=%s&bGMload=true", userKey, hwid, timestamp, nonce, sign)
     
     local headers = {
         ["Content-Type"] = "application/x-www-form-urlencoded"
@@ -527,6 +531,7 @@ local function LoadCloud()
                     
                     local ok, execErr = pcall(fn)
                     if ok then
+                        _G._Authenticated_ = true
                         -- Tải thành công
                     else
                         LexusNotify("Lỗi thực thi script: " .. tostring(execErr))
